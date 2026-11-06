@@ -1,12 +1,98 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import json
+import threading
+import uuid
+from datetime import datetime
+import paho.mqtt.client as mqtt
+from streamlit_autorefresh import st_autorefresh
 from sklearn.ensemble import RandomForestClassifier
 
 st.set_page_config(page_title="Mini Data Center | Virtual Prototype", page_icon="🖥️", layout="wide")
 
 st.title("🖥️ Mini Data Center — Virtual Prototype")
-st.caption("Software simulation for hackathon demonstration | No physical Raspberry Pi / ESP32 connected")
+st.caption("Wokwi ESP32 simulator sends live telemetry through MQTT | Raspberry Pi nodes and CPU/RAM remain virtual")
+
+
+# MQTT settings: must match the ESP32 sketch. HiveMQ public broker uses
+# MQTT over WebSockets on port 8000 with the /mqtt path.
+MQTT_HOST = "broker.hivemq.com"
+MQTT_PORT = 8000
+MQTT_TOPIC = "mini-dc-demo-7f3a91/telemetry"
+
+@st.cache_resource
+def start_mqtt_subscriber():
+    state = {
+        "connected": False,
+        "latest": None,
+        "last_seen": None,
+        "error": None,
+        "lock": threading.Lock(),
+    }
+
+    def on_connect(client, userdata, flags, rc):
+        with state["lock"]:
+            state["connected"] = (rc == 0)
+            state["error"] = None if rc == 0 else f"MQTT connection code: {rc}"
+        if rc == 0:
+            client.subscribe(MQTT_TOPIC, qos=0)
+
+    def on_disconnect(client, userdata, rc):
+        with state["lock"]:
+            state["connected"] = False
+            if rc != 0:
+                state["error"] = f"MQTT disconnected (code {rc}); reconnecting..."
+
+    def on_message(client, userdata, msg):
+        try:
+            payload = json.loads(msg.payload.decode("utf-8"))
+            required = ("zone1_temp", "zone2_temp", "fan1_speed", "fan2_speed")
+            if not all(key in payload for key in required):
+                raise ValueError("Message is missing one or more expected fields")
+            clean = {
+                "zone1_temp": float(payload["zone1_temp"]),
+                "zone2_temp": float(payload["zone2_temp"]),
+                "fan1_speed": int(payload["fan1_speed"]),
+                "fan2_speed": int(payload["fan2_speed"]),
+            }
+            with state["lock"]:
+                state["latest"] = clean
+                state["last_seen"] = datetime.now().strftime("%H:%M:%S")
+                state["error"] = None
+        except Exception as exc:
+            with state["lock"]:
+                state["error"] = f"Could not read MQTT message: {exc}"
+
+    client = mqtt.Client(
+        callback_api_version=mqtt.CallbackAPIVersion.VERSION1,
+        client_id=f"mini-dc-dashboard-{uuid.uuid4().hex[:8]}",
+        transport="websockets",
+    )
+    client.ws_set_options(path="/mqtt")
+    client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
+    client.on_message = on_message
+    client.reconnect_delay_set(min_delay=2, max_delay=30)
+    try:
+        client.connect_async(MQTT_HOST, MQTT_PORT, keepalive=45)
+        client.loop_start()
+    except Exception as exc:
+        state["error"] = str(exc)
+
+    return {"state": state, "client": client}
+
+mqtt_connection = start_mqtt_subscriber()
+mqtt_state = mqtt_connection["state"]
+
+def get_mqtt_snapshot():
+    with mqtt_state["lock"]:
+        return {
+            "connected": mqtt_state["connected"],
+            "latest": dict(mqtt_state["latest"]) if mqtt_state["latest"] else None,
+            "last_seen": mqtt_state["last_seen"],
+            "error": mqtt_state["error"],
+        }
 
 # Train a small reproducible ML model on synthetic demonstration data.
 @st.cache_resource
@@ -38,12 +124,27 @@ if "last_decision" not in st.session_state:
 
 nodes = st.session_state.nodes
 
+mqtt_snapshot = get_mqtt_snapshot()
+
 st.sidebar.header("⚙️ Simulation controls")
-st.sidebar.write("Change these values to test different server conditions. These are simulated readings.")
+live_mode = st.sidebar.toggle("Use live Wokwi ESP32 temperatures", value=True, key="live_mode")
+if live_mode:
+    st_autorefresh(interval=2000, key="mqtt_dashboard_refresh")
+    st.sidebar.caption("Temperature values come from Wokwi MQTT when messages arrive.")
+else:
+    st.sidebar.caption("Manual demo mode: all displayed readings are simulated.")
+
+if live_mode and mqtt_snapshot["latest"]:
+    nodes["Virtual Raspberry Pi 1"]["temperature"] = mqtt_snapshot["latest"]["zone1_temp"]
+    nodes["Virtual Raspberry Pi 2"]["temperature"] = mqtt_snapshot["latest"]["zone2_temp"]
+
 for i, name in enumerate(nodes):
     st.sidebar.subheader(name)
     nodes[name]["online"] = st.sidebar.toggle(f"{name} online", value=nodes[name]["online"], key=f"online_{i}")
-    nodes[name]["temperature"] = st.sidebar.slider(f"{name} temperature (°C)", 20.0, 55.0, float(nodes[name]["temperature"]), 0.5, key=f"temp_{i}")
+    if not (live_mode and mqtt_snapshot["latest"]):
+        nodes[name]["temperature"] = st.sidebar.slider(f"{name} temperature (°C)", 20.0, 80.0, float(min(80.0, max(20.0, nodes[name]["temperature"]))), 0.5, key=f"temp_{i}")
+    else:
+        st.sidebar.metric(f"{name} live temperature", f'{nodes[name]["temperature"]:.1f} °C')
     nodes[name]["cpu"] = st.sidebar.slider(f"{name} CPU usage (%)", 0.0, 100.0, float(nodes[name]["cpu"]), 1.0, key=f"cpu_{i}")
     nodes[name]["ram"] = st.sidebar.slider(f"{name} RAM usage (%)", 0.0, 100.0, float(nodes[name]["ram"]), 1.0, key=f"ram_{i}")
 
@@ -53,7 +154,25 @@ if st.sidebar.button("↺ Reset demonstration"):
     st.session_state.last_decision = None
     st.rerun()
 
-st.info("Demo mode: node metrics and cooling response are simulated. This app does not emulate Raspberry Pi hardware or physically cool equipment.")
+st.info("Wokwi ESP32 temperatures can arrive live through the public MQTT broker. Raspberry Pi nodes, CPU/RAM values, ML training data, and physical cooling remain virtual simulations.")
+
+st.subheader("0. ESP32 → MQTT connection")
+if mqtt_snapshot["connected"]:
+    st.success(f"MQTT subscriber connected to {MQTT_HOST}:{MQTT_PORT} and listening on `{MQTT_TOPIC}`.")
+else:
+    st.warning("Connecting to the MQTT broker. Start the Wokwi simulation and wait for the first message.")
+if mqtt_snapshot["error"]:
+    st.caption(f"Connection/message detail: {mqtt_snapshot['error']}")
+if mqtt_snapshot["latest"]:
+    live = mqtt_snapshot["latest"]
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Zone 1 temperature", f'{live["zone1_temp"]:.1f} °C')
+    m2.metric("Zone 2 temperature", f'{live["zone2_temp"]:.1f} °C')
+    m3.metric("Fan 1 command", f'{live["fan1_speed"]}%')
+    m4.metric("Fan 2 command", f'{live["fan2_speed"]}%')
+    st.caption(f"Last ESP32 message received at {mqtt_snapshot['last_seen']}.")
+else:
+    st.caption("No ESP32 telemetry received yet. Confirm Wokwi shows MQTT Connected and is publishing to the same topic.")
 
 st.subheader("1. Virtual server monitoring")
 cols = st.columns(2)
@@ -177,5 +296,5 @@ st.markdown("""
 - **Workload placement:** actual Python decision logic selects an eligible virtual node.
 - **Application execution:** the demo records the application against that node; it does not start a separate Linux process/container on a real Raspberry Pi.
 - **ML:** Random Forest trained on synthetic sample data predicts a cooling class.
-- **Cooling:** fan command and temperature reduction are simulated; no physical fan or ESP32 is connected.
+- **Cooling:** ESP32 fan-speed values are received from the Wokwi simulation; physical fans and actual cooling are not connected. Dashboard cooling response remains simulated.
 """)
