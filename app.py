@@ -20,6 +20,7 @@ st.caption("Wokwi ESP32 simulator sends live telemetry through MQTT | Raspberry 
 MQTT_HOST = "broker.hivemq.com"
 MQTT_PORT = 8000
 MQTT_TOPIC = "mini-dc-demo-7f3a91/telemetry"
+MQTT_COMMAND_TOPIC = "mini-dc-demo-7f3a91/fan_command"
 
 @st.cache_resource
 def start_mqtt_subscriber():
@@ -270,6 +271,37 @@ for name, d in nodes.items():
     cool_rows.append({"Virtual zone": name, "Predicted cooling": pred, "Suggested virtual fan speed": f"{fan}%", "Model confidence": f"{confidence:.0f}%"})
 st.dataframe(pd.DataFrame(cool_rows), use_container_width=True, hide_index=True)
 st.caption("ML note: this Random Forest is trained on synthetic demonstration data. Its predictions illustrate the pipeline; they are not calibrated for real server thermal safety.")
+
+# Send the two zone-specific ML fan commands to the ESP32 over MQTT.
+# The ESP32 subscribes to MQTT_COMMAND_TOPIC and applies these PWM percentages.
+fan_commands = {}
+for name, d in nodes.items():
+    features = make_cooling_features(d)
+    prediction = cooling_model.predict(features)[0]
+    fan_commands[name] = {"Low": 30, "Medium": 60, "High": 90}[prediction]
+
+command_payload = {
+    "fan1_speed": int(fan_commands["Virtual Raspberry Pi 1"]),
+    "fan2_speed": int(fan_commands["Virtual Raspberry Pi 2"]),
+}
+command_status = "Waiting for MQTT connection"
+if mqtt_snapshot["connected"]:
+    try:
+        result = mqtt_connection["client"].publish(
+            MQTT_COMMAND_TOPIC,
+            json.dumps(command_payload),
+            qos=0,
+            retain=False,
+        )
+        if result.rc == mqtt.MQTT_ERR_SUCCESS:
+            command_status = "ML fan commands published to MQTT"
+        else:
+            command_status = f"MQTT publish returned code {result.rc}"
+    except Exception as exc:
+        command_status = f"Could not publish fan commands: {exc}"
+
+st.info(f"{command_status} | Fan 1: {command_payload['fan1_speed']}% | Fan 2: {command_payload['fan2_speed']}%")
+st.caption(f"Command topic: {MQTT_COMMAND_TOPIC}. Keep the Wokwi ESP32 simulation running to receive commands.")
 
 st.subheader("4. Virtual cooling response")
 fan_cols = st.columns(2)
