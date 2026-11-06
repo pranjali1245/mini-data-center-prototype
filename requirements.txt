@@ -4,3 +4,4 @@ numpy
 scikit-learn
 paho-mqtt>=2.0,<3.0
 streamlit-autorefresh
+joblib
