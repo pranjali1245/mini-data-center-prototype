@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import json
 import threading
 import uuid
 from datetime import datetime
 import paho.mqtt.client as mqtt
 from streamlit_autorefresh import st_autorefresh
-from sklearn.ensemble import RandomForestClassifier
+import joblib
+from pathlib import Path
 
 st.set_page_config(page_title="Mini Data Center | Virtual Prototype", page_icon="🖥️", layout="wide")
 
@@ -94,22 +94,27 @@ def get_mqtt_snapshot():
             "error": mqtt_state["error"],
         }
 
-# Train a small reproducible ML model on synthetic demonstration data.
+# Load the Random Forest model trained in Google Colab.
 @st.cache_resource
-def train_cooling_model():
-    rng = np.random.default_rng(42)
-    n = 1200
-    temp = rng.uniform(22, 50, n)
-    cpu = rng.uniform(0, 100, n)
-    ram = rng.uniform(10, 100, n)
-    trend = rng.uniform(-1.5, 2.5, n)
-    severity = 0.55 * (temp - 25) + 0.22 * cpu + 0.12 * ram + 5 * trend
-    labels = np.where(severity < 35, "Low", np.where(severity < 55, "Medium", "High"))
-    model = RandomForestClassifier(n_estimators=120, random_state=42, max_depth=8)
-    model.fit(pd.DataFrame({"temperature": temp, "cpu": cpu, "ram": ram, "temp_trend": trend}), labels)
-    return model
+def load_cooling_model():
+    model_path = Path(__file__).parent / "cooling_model.pkl"
+    if not model_path.exists():
+        raise FileNotFoundError(
+            "cooling_model.pkl not found. Upload it to the same GitHub folder as app.py."
+        )
+    return joblib.load(model_path)
 
-cooling_model = train_cooling_model()
+cooling_model = load_cooling_model()
+
+
+def make_cooling_features(node_data):
+    # Column names and order must match the Colab training notebook.
+    return pd.DataFrame([{
+        "temperature": node_data["temperature"],
+        "cpu_usage": node_data["cpu"],
+        "ram_usage": node_data["ram"],
+        "temp_trend": 0.5
+    }], columns=["temperature", "cpu_usage", "ram_usage", "temp_trend"])
 
 DEFAULT_NODES = {
     "Virtual Raspberry Pi 1": {"temperature": 42.0, "cpu": 85.0, "ram": 80.0, "online": True, "apps": []},
@@ -257,7 +262,7 @@ st.subheader("3. ML-based cooling prediction")
 cool_rows = []
 for name, d in nodes.items():
     # Demonstration trend is zero; a future live sensor integration can replace it.
-    features = pd.DataFrame([{"temperature": d["temperature"], "cpu": d["cpu"], "ram": d["ram"], "temp_trend": 0.5}])
+    features = make_cooling_features(d)
     pred = cooling_model.predict(features)[0]
     probs = cooling_model.predict_proba(features)[0]
     confidence = float(max(probs) * 100)
@@ -269,7 +274,7 @@ st.caption("ML note: this Random Forest is trained on synthetic demonstration da
 st.subheader("4. Virtual cooling response")
 fan_cols = st.columns(2)
 for col, (name, d) in zip(fan_cols, nodes.items()):
-    features = pd.DataFrame([{"temperature": d["temperature"], "cpu": d["cpu"], "ram": d["ram"], "temp_trend": 0.5}])
+    features = make_cooling_features(d)
     pred = cooling_model.predict(features)[0]
     fan = {"Low": 30, "Medium": 60, "High": 90}[pred]
     with col:
