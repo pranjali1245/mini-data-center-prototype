@@ -1,4 +1,1 @@
-streamlit>=1.35
-pandas>=2.0
-numpy>=1.24
-scikit-learn>=1.3
+streamlit\npandas\nnumpy\nscikit-learn\npaho-mqtt>=2.0,<3.0\nstreamlit-autorefresh\n
