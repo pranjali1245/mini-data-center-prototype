@@ -265,8 +265,8 @@ if st.button("🚀 Submit application — automatic placement", type="primary"):
         d["apps"].append(selected_app)
         d["cpu"] = min(100.0, d["cpu"] + req["cpu"])
         d["ram"] = min(100.0, d["ram"] + req["ram"])
-        # Synthetic workload-related heat increase for demonstration.
-        d["temperature"] = min(55.0, d["temperature"] + req["cpu"] * 0.08)
+       # Add workload heat to the selected virtual server.
+        d["heat_load"] = min(2.0, d.get("heat_load", 0.0) + req["heat"])
         st.session_state.last_decision = {"status": "Deployed", "app": selected_app, "node": chosen, "reason": "Best eligible score after safety/resource checks"}
         st.session_state.logs.insert(0, f"DEPLOYED: {selected_app} -> {chosen}")
     st.rerun()
