@@ -118,9 +118,16 @@ def make_cooling_features(node_data):
     }], columns=["temperature", "cpu_usage", "ram_usage", "temp_trend"])
 
 DEFAULT_NODES = {
-    "Virtual Raspberry Pi 1": {"temperature": 42.0, "cpu": 85.0, "ram": 80.0, "online": True, "apps": []},
-    "Virtual Raspberry Pi 2": {"temperature": 30.0, "cpu": 35.0, "ram": 40.0, "online": True, "apps": []},
+    "Virtual Raspberry Pi 1": {
+        "temperature": 42.0, "cpu": 85.0, "ram": 80.0,
+        "heat_load": 0.0, "online": True, "apps": []
+    },
+    "Virtual Raspberry Pi 2": {
+        "temperature": 30.0, "cpu": 35.0, "ram": 40.0,
+        "heat_load": 0.0, "online": True, "apps": []
+    },
 }
+
 if "nodes" not in st.session_state:
     st.session_state.nodes = {k: {**v, "apps": []} for k, v in DEFAULT_NODES.items()}
 if "logs" not in st.session_state:
