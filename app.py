@@ -204,10 +204,24 @@ for col, (name, data) in zip(cols, nodes.items()):
 st.divider()
 st.subheader("2. Submit a new application")
 app_catalog = {
-    "Web application": {"cpu": 15, "ram": 15, "description": "Small web service demo"},
-    "Data processing": {"cpu": 35, "ram": 25, "description": "Batch data-processing demo"},
-    "ML inference": {"cpu": 30, "ram": 30, "description": "Machine-learning inference demo"},
+    "Web application": {
+        "cpu": 15, "ram": 15, "heat": 0.15,
+        "description": "Small web service demo"
+    },
+    "Data processing": {
+        "cpu": 35, "ram": 25, "heat": 0.35,
+        "description": "Batch data-processing demo"
+    },
+    "ML inference": {
+        "cpu": 30, "ram": 30, "heat": 0.30,
+        "description": "Machine-learning inference demo"
+    },
+    "Heavy Analytics": {
+        "cpu": 60, "ram": 50, "heat": 0.60,
+        "description": "High workload demo"
+    },
 }
+
 left, right = st.columns([2, 1])
 with left:
     selected_app = st.selectbox("Choose application", list(app_catalog.keys()))
