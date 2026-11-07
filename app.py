@@ -197,6 +197,7 @@ for col, (name, data) in zip(cols, nodes.items()):
         m1.metric("Temperature", f'{data["temperature"]:.1f} °C')
         m2.metric("CPU usage", f'{data["cpu"]:.0f}%')
         m3.metric("RAM usage", f'{data["ram"]:.0f}%')
+        st.metric("Workload heat load", f'{data.get("heat_load", 0.0):.2f}')
         st.progress(int(data["cpu"]), text="CPU utilization")
         st.progress(int(data["ram"]), text="RAM utilization")
         st.write("Running applications:", ", ".join(data["apps"]) if data["apps"] else "None")
