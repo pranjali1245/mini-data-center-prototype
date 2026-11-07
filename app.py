@@ -305,6 +305,9 @@ for name, d in nodes.items():
 command_payload = {
     "fan1_speed": int(fan_commands["Virtual Raspberry Pi 1"]),
     "fan2_speed": int(fan_commands["Virtual Raspberry Pi 2"]),
+
+    "zone1_heat": float(nodes["Virtual Raspberry Pi 1"]["heat_load"]),
+    "zone2_heat": float(nodes["Virtual Raspberry Pi 2"]["heat_load"])
 }
 command_status = "Waiting for MQTT connection"
 if mqtt_snapshot["connected"]:
