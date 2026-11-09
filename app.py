@@ -472,7 +472,7 @@ if live_mode:
    st.sidebar.caption(
     "Temperature and humidity arrive through Wokwi MQTT. "
     "Virtual water flow is calculated by ESP32 using fan speed."
-)
+    )
 
 else:
 
