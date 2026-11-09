@@ -23,7 +23,7 @@ st.set_page_config(
 st.title("🖥️ Mini Data Center — Virtual Prototype")
 
 st.caption(
-    "Wokwi ESP32 simulator sends live telemetry through MQTT | "
+    "Wokwi ESP32 + DHT22 simulator sends live temperature/humidity telemetry through MQTT | "
     "Raspberry Pi nodes and CPU/RAM remain virtual"
 )
 
@@ -100,9 +100,20 @@ def start_mqtt_subscriber():
                     "Message is missing expected fields"
                 )
 
+            humidity_value = payload.get("humidity")
+            humidity_value = (
+                float(humidity_value)
+                if humidity_value is not None
+                else None
+            )
+
+            if humidity_value is not None and not 0.0 <= humidity_value <= 100.0:
+                raise ValueError("Humidity must be between 0 and 100 percent")
+
             clean = {
                 "zone1_temp": float(payload["zone1_temp"]),
                 "zone2_temp": float(payload["zone2_temp"]),
+                "humidity": humidity_value,
                 "fan1_speed": int(payload["fan1_speed"]),
                 "fan2_speed": int(payload["fan2_speed"]),
             }
@@ -432,7 +443,7 @@ if live_mode:
     )
 
     st.sidebar.caption(
-        "Temperature values come from Wokwi MQTT when messages arrive."
+        "Temperature and DHT22 humidity values come from Wokwi MQTT when messages arrive."
     )
 
 else:
@@ -576,7 +587,7 @@ if mqtt_snapshot["latest"]:
 
     live = mqtt_snapshot["latest"]
 
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3, m4, m5 = st.columns(5)
 
     m1.metric(
         "Zone 1 temperature",
@@ -588,12 +599,18 @@ if mqtt_snapshot["latest"]:
         f'{live["zone2_temp"]:.1f} °C'
     )
 
+    humidity = live.get("humidity")
     m3.metric(
+        "Live humidity (DHT22)",
+        f"{humidity:.1f}%" if humidity is not None else "Not available"
+    )
+
+    m4.metric(
         "Fan 1 command",
         f'{live["fan1_speed"]}%'
     )
 
-    m4.metric(
+    m5.metric(
         "Fan 2 command",
         f'{live["fan2_speed"]}%'
     )
