@@ -1497,31 +1497,45 @@ if current_deployments:
         server_name = removed_app.get("server")
 
         for node in st.session_state.nodes:
-            if node.get("name") == server_name:
-                app_name = removed_app.get("app")
 
-                if app_name in node.get("apps", []):
-                    node["apps"].remove(app_name)
+    # Skip invalid node entries
+    if not isinstance(node, dict):
+        continue
 
-                node["used_cpu"] = max(
-                    0,
-                    node.get("used_cpu", 0) - removed_app.get("cpu", 0)
-                )
+    if node.get("name") == server_name:
 
-                node["used_ram"] = max(
-                    0,
-                    node.get("used_ram", 0) - removed_app.get("ram", 0)
-                )
+        app_name = removed_app.get("app")
 
-                node["used_gpu"] = max(
-                    0,
-                    node.get("used_gpu", 0) - removed_app.get("gpu", 0)
-                )
+        if not isinstance(node.get("apps"), list):
+            node["apps"] = []
 
-                node["heat_load"] = max(
-                    0,
-                    node.get("heat_load", 0) - removed_app.get("heat", 0)
-                )
+        if app_name in node["apps"]:
+            node["apps"].remove(app_name)
+
+        node["used_cpu"] = max(
+            0,
+            float(node.get("used_cpu", 0))
+            - float(removed_app.get("cpu", 0))
+        )
+
+        node["used_ram"] = max(
+            0,
+            float(node.get("used_ram", 0))
+            - float(removed_app.get("ram", 0))
+        )
+
+        node["used_gpu"] = max(
+            0,
+            float(node.get("used_gpu", 0))
+            - float(removed_app.get("gpu", 0))
+        )
+
+        node["heat_load"] = max(
+            0,
+            float(node.get("heat_load", 0))
+            - float(removed_app.get("heat", 0))
+        )
+
 
         st.session_state.deployments = current_deployments
 
