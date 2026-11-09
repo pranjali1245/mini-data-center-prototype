@@ -330,25 +330,29 @@ DEFAULT_NODES = {
 
 
 # =========================================================
-# 7. SESSION STATE INITIALIZATION
+# 7. SHARED DEMO STATE (SURVIVES BROWSER REFRESH)
 # =========================================================
 
-if "nodes" not in st.session_state:
-
-    st.session_state.nodes = {
-        name: {**data, "apps": []}
-        for name, data in DEFAULT_NODES.items()
+@st.cache_resource
+def get_shared_demo_state():
+    return {
+        "nodes": {
+            name: {**data, "apps": []}
+            for name, data in DEFAULT_NODES.items()
+        },
+        "deployments": [],
+        "logs": [],
+        "last_decision": None
     }
 
 
-if "deployments" not in st.session_state:
-    st.session_state.deployments = []
+shared_demo_state = get_shared_demo_state()
 
-if "logs" not in st.session_state:
-    st.session_state.logs = []
-
-if "last_decision" not in st.session_state:
-    st.session_state.last_decision = None
+# Reattach each browser session to the same in-memory demo state.
+st.session_state.nodes = shared_demo_state["nodes"]
+st.session_state.deployments = shared_demo_state["deployments"]
+st.session_state.logs = shared_demo_state["logs"]
+st.session_state.last_decision = shared_demo_state["last_decision"]
 
 
 # Recover missing fields from older sessions
@@ -402,6 +406,7 @@ for name, node in st.session_state.nodes.items():
         all_deployments.append(app)
 
 st.session_state.deployments = all_deployments
+shared_demo_state["deployments"] = st.session_state.deployments
 
 
 def recalculate_server_resources():
@@ -544,6 +549,11 @@ if st.sidebar.button("↺ Reset demonstration"):
     st.session_state.logs = []
     st.session_state.last_decision = None
 
+    shared_demo_state["nodes"] = st.session_state.nodes
+    shared_demo_state["deployments"] = st.session_state.deployments
+    shared_demo_state["logs"] = st.session_state.logs
+    shared_demo_state["last_decision"] = st.session_state.last_decision
+
     st.rerun()
 
 
@@ -552,6 +562,7 @@ if st.sidebar.button("↺ Reset demonstration"):
 # =========================================================
 
 st.info(
+    "Workload assignments are kept in shared in-memory state, so they survive browser refreshes while this Streamlit app process remains running. "
     "ESP32 telemetry is received through MQTT. "
     "Temperature and humidity are simulated/read through Wokwi "
     "components. Water flow is simulated using a potentiometer. "
@@ -815,6 +826,7 @@ if st.button(
             "node": None,
             "reason": "No suitable server available"
         }
+        shared_demo_state["last_decision"] = st.session_state.last_decision
 
         st.session_state.logs.insert(
             0,
@@ -853,6 +865,7 @@ if st.button(
                 "temperature, CPU and RAM checks."
             )
         }
+        shared_demo_state["last_decision"] = st.session_state.last_decision
 
         st.session_state.logs.insert(
             0,
@@ -976,6 +989,7 @@ if st.session_state.deployments:
                 d for d in st.session_state.deployments
                 if d["id"] != deployment_id
             ]
+            shared_demo_state["deployments"] = st.session_state.deployments
 
             st.session_state.logs.insert(
                 0,
@@ -990,6 +1004,7 @@ if st.session_state.deployments:
                 "node": server_name,
                 "reason": "Application resources released successfully"
             }
+            shared_demo_state["last_decision"] = st.session_state.last_decision
 
             st.rerun()
 
