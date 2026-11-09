@@ -1469,84 +1469,81 @@ else:
 # 23. REMOVE APPLICATION
 # =========================================================
 
-st.markdown("---")
-st.subheader(" Application Management")
+st.divider()
+st.subheader("4. Remove a Running Application")
 
-current_deployments = st.session_state.get("deployments", [])
+if st.session_state.deployments:
 
-if current_deployments:
-    deployment_options = [
-        f"{i + 1}. {item.get('app', 'Application')} - "
-        f"{item.get('server', 'Unknown Server')}"
-        for i, item in enumerate(current_deployments)
-    ]
+    deployment_options = {
 
-    selected_remove = st.selectbox(
-        "Select an application to remove",
-        options=deployment_options,
+        f'{d["app"]} | {d["node"]} | ID: {d["id"]}': d["id"]
+
+        for d in st.session_state.deployments
+    }
+
+    selected_deployment = st.selectbox(
+        "Select Application to Remove",
+        list(deployment_options.keys()),
         key="remove_application_select"
     )
 
-    if st.button(
-        "Remove Selected Application",
-        use_container_width=True
-    ):
-        remove_index = deployment_options.index(selected_remove)
-        removed_app = current_deployments.pop(remove_index)
+    if st.button("🗑️ Remove Selected Application"):
 
-        server_name = removed_app.get("server")
-for node in st.session_state.nodes:
+        deployment_id = deployment_options[selected_deployment]
 
-    # Skip invalid node entries
-    if not isinstance(node, dict):
-        continue
-
-    if node.get("name") == server_name:
-
-        app_name = removed_app.get("app")
-
-        if not isinstance(node.get("apps"), list):
-            node["apps"] = []
-
-        if app_name in node["apps"]:
-            node["apps"].remove(app_name)
-
-        node["used_cpu"] = max(
-            0,
-            float(node.get("used_cpu", 0))
-            - float(removed_app.get("cpu", 0))
+        deployment_to_remove = next(
+            (
+                d for d in st.session_state.deployments
+                if d["id"] == deployment_id
+            ),
+            None
         )
 
-        node["used_ram"] = max(
-            0,
-            float(node.get("used_ram", 0))
-            - float(removed_app.get("ram", 0))
-        )
+        if deployment_to_remove:
 
-        node["used_gpu"] = max(
-            0,
-            float(node.get("used_gpu", 0))
-            - float(removed_app.get("gpu", 0))
-        )
+            server_name = deployment_to_remove["node"]
+            server = nodes[server_name]
 
-        node["heat_load"] = max(
-            0,
-            float(node.get("heat_load", 0))
-            - float(removed_app.get("heat", 0))
-        )
+            server["apps"] = [
+                app for app in server["apps"]
+                if app["id"] != deployment_id
+            ]
 
+            recalculate_server_resources()
 
-        st.session_state.deployments = current_deployments
+            st.session_state.deployments = [
+                d for d in st.session_state.deployments
+                if d["id"] != deployment_id
+            ]
 
-        st.session_state.logs.append({
-            "time": datetime.now().strftime("%H:%M:%S"),
-            "event": f"Removed application: {removed_app.get('app')}"
-        })
+            shared_demo_state["deployments"] = (
+                st.session_state.deployments
+            )
 
-        st.success("Application removed successfully.")
-        st.rerun()
+            st.session_state.logs.insert(
+                0,
+                f'REMOVED: {deployment_to_remove["app"]} '
+                f'from {server_name}'
+            )
+
+            st.session_state.last_decision = {
+
+                "status": "Removed",
+                "app": deployment_to_remove["app"],
+                "node": server_name,
+                "reason": "Application resources released successfully"
+            }
+
+            shared_demo_state["last_decision"] = (
+                st.session_state.last_decision
+            )
+
+            st.rerun()
+
 else:
-    st.info("There are no applications to remove.")
+
+    st.info("There are no running applications to remove.")
+
 
 
 # =========================================================
