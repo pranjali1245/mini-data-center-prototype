@@ -1555,14 +1555,39 @@ zone_temperatures = [
     float(mqtt_snapshot.get("zone2_temp", 30))
 ]
 
+# Safely read virtual server data
+
+current_nodes = st.session_state.get("nodes", [])
+
+# Ensure two virtual servers are available
+if not isinstance(current_nodes, list):
+    current_nodes = []
+
+while len(current_nodes) < 2:
+    current_nodes.append({
+        "name": f"Virtual Raspberry Pi {len(current_nodes) + 1}",
+        "temperature": 30,
+        "base_cpu": 100,
+        "base_ram": 100,
+        "base_gpu": 100,
+        "used_cpu": 0,
+        "used_ram": 0,
+        "used_gpu": 0,
+        "heat_load": 0,
+        "online": True,
+        "apps": []
+    })
+
+st.session_state.nodes = current_nodes
+
 zone_cpu_values = [
-    float(st.session_state.nodes[0].get("used_cpu", 0)),
-    float(st.session_state.nodes[1].get("used_cpu", 0))
+    float(current_nodes[0].get("used_cpu", 0)),
+    float(current_nodes[1].get("used_cpu", 0))
 ]
 
 zone_ram_values = [
-    float(st.session_state.nodes[0].get("used_ram", 0)),
-    float(st.session_state.nodes[1].get("used_ram", 0))
+    float(current_nodes[0].get("used_ram", 0)),
+    float(current_nodes[1].get("used_ram", 0))
 ]
 
 prediction_results = []
