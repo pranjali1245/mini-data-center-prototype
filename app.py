@@ -1677,19 +1677,7 @@ else:
 
 
 
-    <div style="text-align:center; padding:18px 5px;">
-        <h2 style="color:#1769AA; margin-bottom:5px;">
-            HYDRO-TRACE
-        </h2>
-        <p style="color:#64748b; font-size:14px;">
-            Intelligent Workload Management • AI-Based Cooling •
-            Smart Data Center Monitoring
-        </p>
-        <p style="color:#94a3b8; font-size:12px;">
-             Prototype Demonstration
-        </p>
-    </div>
-    """,
+
     unsafe_allow_html=True
 )
 
