@@ -52,6 +52,7 @@ def start_mqtt_subscriber():
         "latest": None,
         "last_seen": None,
         "error": None,
+        "history": [],
         "lock": threading.Lock()
     }
 
@@ -155,9 +156,19 @@ def start_mqtt_subscriber():
 
                 state["latest"] = clean
 
-                state["last_seen"] = (
-                    datetime.now().strftime("%H:%M:%S")
-                )
+                now = datetime.now()
+                state["last_seen"] = now.strftime("%H:%M:%S")
+
+                # Keep the latest 300 ESP32 readings for live graphs.
+                state["history"].append({
+                    "Time": now,
+                    "Zone 1 Temperature": zone1_temp,
+                    "Zone 2 Temperature": zone2_temp,
+                    "Fan 1 Speed": fan1_speed,
+                    "Fan 2 Speed": fan2_speed
+                })
+                if len(state["history"]) > 300:
+                    state["history"] = state["history"][-300:]
 
                 state["error"] = None
 
@@ -219,7 +230,8 @@ def get_mqtt_snapshot():
                 else None
             ),
             "last_seen": mqtt_state["last_seen"],
-            "error": mqtt_state["error"]
+            "error": mqtt_state["error"],
+            "history": list(mqtt_state["history"])
         }
 
 
@@ -662,7 +674,60 @@ else:
 
 
 # =========================================================
-# 12. VIRTUAL SERVER MONITORING
+# 12. LIVE TEMPERATURE AND FAN SPEED GRAPHS
+# =========================================================
+
+st.divider()
+st.subheader("📈 Live Temperature and Cooling Analytics")
+
+history = mqtt_snapshot.get("history", [])
+
+if history:
+
+    history_df = pd.DataFrame(history)
+    history_df["Time"] = pd.to_datetime(history_df["Time"])
+    history_df = history_df.set_index("Time")
+
+    st.markdown("### 🌡️ Temperature vs Time")
+    temperature_df = history_df[[
+        "Zone 1 Temperature",
+        "Zone 2 Temperature"
+    ]]
+    st.line_chart(
+        temperature_df,
+        y_label="Temperature (°C)",
+        x_label="Time",
+        height=300
+    )
+
+    st.markdown("### 🌀 Fan Speed vs Time")
+    fan_df = history_df[[
+        "Fan 1 Speed",
+        "Fan 2 Speed"
+    ]]
+    st.line_chart(
+        fan_df,
+        y_label="Fan Speed (%)",
+        x_label="Time",
+        height=300
+    )
+
+    st.caption(
+        "Graphs display ESP32 telemetry received through MQTT. "
+        "The latest 300 readings are kept in memory; history resets "
+        "when the Streamlit app process restarts."
+    )
+
+else:
+
+    st.info(
+        "Waiting for ESP32 telemetry. Start the Wokwi simulation "
+        "to display live temperature and fan-speed graphs."
+    )
+
+
+# =========================================================
+# 13. VIRTUAL SERVER MONITORING
 # =========================================================
 
 st.subheader("1. Virtual Server Monitoring")
