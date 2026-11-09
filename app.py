@@ -738,8 +738,8 @@ if st.sidebar.button("↺ Reset Demonstration"):
 # =========================================================
 
 st.info(
-    "Intelligent Data Center. Smarter Cooling. Sustainable Computing.
-AI-Driven Thermal Intelligence & Workload Orchestration"
+    "Intelligent Data Center. Smarter Cooling. Sustainable Computing."
+    "AI-Driven Thermal Intelligence & Workload Orchestration"
 )
 # =========================================================
 # 14. ESP32 MQTT LIVE SENSOR MONITORING
