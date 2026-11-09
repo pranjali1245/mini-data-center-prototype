@@ -1092,89 +1092,122 @@ def choose_node(app_req):
 # 15A. AUTOMATIC WORKLOAD REASSIGNMENT
 # =========================================================
 
+
 def run_automatic_reassignment():
 
     for source_name, source in nodes.items():
 
-        # Check whether source server needs workload migration
-        needs_reassignment = (
-            not source["online"]
-            or source["temperature"] >= 45
-            or source["cpu"] >= 80
-            or source["ram"] >= 80
-            or source["gpu"] >= 80
-        )
-
-        if not needs_reassignment:
-            continue
-
-        # Continue while applications remain and migration is possible
+        # Recheck source overload after every migration
         while source["apps"]:
 
+            needs_reassignment = (
+                not source["online"]
+                or source["temperature"] >= 45
+                or source["cpu"] >= 80
+                or source["ram"] >= 80
+                or source["gpu"] >= 80
+            )
+
+            if not needs_reassignment:
+                break
+
+            possible_moves = []
+
+            # Check every application, not only the largest one
             movable_apps = sorted(
                 source["apps"],
                 key=lambda app: (
-                    app["heat"],
-                    app["cpu"] + app["ram"] + app.get("gpu", 0)
+                    app.get("heat", 0),
+                    app.get("cpu", 0)
+                    + app.get("ram", 0)
+                    + app.get("gpu", 0)
                 ),
                 reverse=True
             )
 
-            app_to_move = movable_apps[0]
-            candidates = []
+            for app_to_move in movable_apps:
 
-            for target_name, target in nodes.items():
+                for target_name, target in nodes.items():
 
-                if target_name == source_name:
-                    continue
+                    if target_name == source_name:
+                        continue
 
-                if not target["online"]:
-                    continue
+                    if not target["online"]:
+                        continue
 
-                if target["temperature"] >= 45:
-                    continue
+                    if target["temperature"] >= 45:
+                        continue
 
-                if target["cpu"] + app_to_move["cpu"] > 90:
-                    continue
+                    projected_cpu = (
+                        target["cpu"] + app_to_move["cpu"]
+                    )
 
-                if target["ram"] + app_to_move["ram"] > 90:
-                    continue
+                    projected_ram = (
+                        target["ram"] + app_to_move["ram"]
+                    )
 
-                if target["gpu"] + app_to_move.get("gpu", 0) > 90:
-                    continue
+                    projected_gpu = (
+                        target["gpu"] + app_to_move.get("gpu", 0)
+                    )
 
-                projected_score = (
-                    (target["temperature"] / 50) * 0.35
-                    + ((target["cpu"] + app_to_move["cpu"]) / 100) * 0.25
-                    + ((target["ram"] + app_to_move["ram"]) / 100) * 0.20
-                    + ((target["gpu"] + app_to_move.get("gpu", 0)) / 100) * 0.20
+                    # Target must have sufficient capacity
+                    # Keep projected resources below 80%
+                    if projected_cpu >= 80:
+                        continue
+
+                    if projected_ram >= 80:
+                        continue
+
+                    if projected_gpu >= 80:
+                        continue
+
+                    projected_score = (
+                        (target["temperature"] / 50) * 0.35
+                        + (projected_cpu / 100) * 0.25
+                        + (projected_ram / 100) * 0.20
+                        + (projected_gpu / 100) * 0.20
+                    )
+
+                    possible_moves.append((
+                        projected_score,
+                        app_to_move,
+                        target_name
+                    ))
+
+            # No application can safely fit on another server
+            if not possible_moves:
+                st.session_state.logs.insert(
+                    0,
+                    f"REASSIGNMENT BLOCKED: No suitable target "
+                    f"for applications on {source_name}"
                 )
-
-                candidates.append((projected_score, target_name))
-
-            if not candidates:
                 break
 
-            candidates.sort()
-            target_name = candidates[0][1]
+            # Select the best application + target combination
+            possible_moves.sort(key=lambda item: item[0])
 
-            # Move application between virtual servers
+            _, app_to_move, target_name = possible_moves[0]
+
+            # Remove application from source
             source["apps"] = [
                 app for app in source["apps"]
                 if app["id"] != app_to_move["id"]
             ]
 
+            # Add application to target
             app_to_move["node"] = target_name
             nodes[target_name]["apps"].append(app_to_move)
 
-            # Recalculate resources on both servers
+            # Recalculate both servers
             recalculate_server_resources()
 
-            # Update deployment record
+            # Synchronize deployment record
             for deployment in st.session_state.deployments:
+
                 if deployment["id"] == app_to_move["id"]:
                     deployment["node"] = target_name
 
+            # Record migration
             st.session_state.logs.insert(
                 0,
                 f'AUTO REASSIGNED: {app_to_move["app"]} '
@@ -1187,11 +1220,12 @@ def run_automatic_reassignment():
 
             shared_demo_state["nodes"] = nodes
 
-        recalculate_server_resources()
+    recalculate_server_resources()
 
 
 # Run automatic reassignment on every dashboard refresh
 run_automatic_reassignment()
+
 
 # =========================================================
 # 16. ASSIGN APPLICATION
