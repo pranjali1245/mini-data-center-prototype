@@ -108,7 +108,7 @@ def start_mqtt_subscriber():
             ):
                 raise ValueError("Invalid temperature reading.")
 
-            # Humidity - optional for older ESP32 messages
+            # Humidity
             humidity = payload.get("humidity")
 
             if humidity is not None:
@@ -119,7 +119,7 @@ def start_mqtt_subscriber():
                         "Humidity must be between 0 and 100%."
                     )
 
-            # Water flow - optional for backward compatibility
+            # Water flow
             water_flow = payload.get("water_flow")
 
             if water_flow is not None:
@@ -141,7 +141,9 @@ def start_mqtt_subscriber():
                 0 <= fan1_speed <= 100
                 and 0 <= fan2_speed <= 100
             ):
-                raise ValueError("Fan speed must be between 0 and 100.")
+                raise ValueError(
+                    "Fan speed must be between 0 and 100."
+                )
 
             clean = {
                 "zone1_temp": zone1_temp,
@@ -159,14 +161,17 @@ def start_mqtt_subscriber():
                 now = datetime.now()
                 state["last_seen"] = now.strftime("%H:%M:%S")
 
-                # Keep the latest 300 ESP32 readings for live graphs.
+                # Save telemetry for live graphs.
+                # Water flow is included in history.
                 state["history"].append({
                     "Time": now,
                     "Zone 1 Temperature": zone1_temp,
                     "Zone 2 Temperature": zone2_temp,
                     "Fan 1 Speed": fan1_speed,
-                    "Fan 2 Speed": fan2_speed
+                    "Fan 2 Speed": fan2_speed,
+                    "Water Flow (L/min)": water_flow
                 })
+
                 if len(state["history"]) > 300:
                     state["history"] = state["history"][-300:]
 
@@ -342,11 +347,12 @@ DEFAULT_NODES = {
 
 
 # =========================================================
-# 7. SHARED DEMO STATE (SURVIVES BROWSER REFRESH)
+# 7. SHARED DEMO STATE
 # =========================================================
 
 @st.cache_resource
 def get_shared_demo_state():
+
     return {
         "nodes": {
             name: {**data, "apps": []}
@@ -360,7 +366,6 @@ def get_shared_demo_state():
 
 shared_demo_state = get_shared_demo_state()
 
-# Reattach each browser session to the same in-memory demo state.
 st.session_state.nodes = shared_demo_state["nodes"]
 st.session_state.deployments = shared_demo_state["deployments"]
 st.session_state.logs = shared_demo_state["logs"]
@@ -674,7 +679,7 @@ else:
 
 
 # =========================================================
-# 12. LIVE TEMPERATURE AND FAN SPEED GRAPHS
+# 12. LIVE TEMPERATURE, FAN AND WATER FLOW GRAPHS
 # =========================================================
 
 st.divider()
@@ -688,11 +693,14 @@ if history:
     history_df["Time"] = pd.to_datetime(history_df["Time"])
     history_df = history_df.set_index("Time")
 
+    # Temperature graph
     st.markdown("### 🌡️ Temperature vs Time")
+
     temperature_df = history_df[[
         "Zone 1 Temperature",
         "Zone 2 Temperature"
     ]]
+
     st.line_chart(
         temperature_df,
         y_label="Temperature (°C)",
@@ -700,11 +708,14 @@ if history:
         height=300
     )
 
+    # Fan speed graph
     st.markdown("### 🌀 Fan Speed vs Time")
+
     fan_df = history_df[[
         "Fan 1 Speed",
         "Fan 2 Speed"
     ]]
+
     st.line_chart(
         fan_df,
         y_label="Fan Speed (%)",
@@ -712,17 +723,45 @@ if history:
         height=300
     )
 
+    # Water flow graph
+    st.markdown("### 💧 Water Flow Rate vs Time")
+
+    if (
+        "Water Flow (L/min)" in history_df.columns
+        and history_df["Water Flow (L/min)"].notna().any()
+    ):
+
+        water_flow_df = history_df[
+            ["Water Flow (L/min)"]
+        ].dropna()
+
+        st.line_chart(
+            water_flow_df,
+            y_label="Water Flow (L/min)",
+            x_label="Time",
+            height=300
+        )
+
+    else:
+
+        st.info(
+            "Waiting for water-flow values from the Wokwi "
+            "potentiometer through ESP32 MQTT telemetry."
+        )
+
     st.caption(
         "Graphs display ESP32 telemetry received through MQTT. "
         "The latest 300 readings are kept in memory; history resets "
-        "when the Streamlit app process restarts."
+        "when the Streamlit app process restarts. "
+        "Water flow is simulated using a Wokwi potentiometer "
+        "(0–20 L/min)."
     )
 
 else:
 
     st.info(
         "Waiting for ESP32 telemetry. Start the Wokwi simulation "
-        "to display live temperature and fan-speed graphs."
+        "to display live temperature, fan-speed and water-flow graphs."
     )
 
 
@@ -783,7 +822,7 @@ for col, (name, data) in zip(cols, nodes.items()):
 
 
 # =========================================================
-# 13. APPLICATION SUBMISSION
+# 14. APPLICATION SUBMISSION
 # =========================================================
 
 st.divider()
@@ -823,7 +862,7 @@ with right:
 
 
 # =========================================================
-# 14. AUTOMATIC WORKLOAD SCHEDULER
+# 15. AUTOMATIC WORKLOAD SCHEDULER
 # =========================================================
 
 def choose_node(app_req):
@@ -873,7 +912,7 @@ def choose_node(app_req):
 
 
 # =========================================================
-# 15. ASSIGN APPLICATION
+# 16. ASSIGN APPLICATION
 # =========================================================
 
 if st.button(
@@ -891,7 +930,10 @@ if st.button(
             "node": None,
             "reason": "No suitable server available"
         }
-        shared_demo_state["last_decision"] = st.session_state.last_decision
+
+        shared_demo_state["last_decision"] = (
+            st.session_state.last_decision
+        )
 
         st.session_state.logs.insert(
             0,
@@ -930,7 +972,10 @@ if st.button(
                 "temperature, CPU and RAM checks."
             )
         }
-        shared_demo_state["last_decision"] = st.session_state.last_decision
+
+        shared_demo_state["last_decision"] = (
+            st.session_state.last_decision
+        )
 
         st.session_state.logs.insert(
             0,
@@ -941,7 +986,7 @@ if st.button(
 
 
 # =========================================================
-# 16. LAST DEPLOYMENT DECISION
+# 17. LAST DEPLOYMENT DECISION
 # =========================================================
 
 if st.session_state.last_decision:
@@ -970,7 +1015,7 @@ if st.session_state.last_decision:
 
 
 # =========================================================
-# 17. RUNNING APPLICATIONS
+# 18. RUNNING APPLICATIONS
 # =========================================================
 
 st.divider()
@@ -1005,7 +1050,7 @@ else:
 
 
 # =========================================================
-# 18. REMOVE APPLICATION
+# 19. REMOVE APPLICATION
 # =========================================================
 
 st.divider()
@@ -1054,7 +1099,10 @@ if st.session_state.deployments:
                 d for d in st.session_state.deployments
                 if d["id"] != deployment_id
             ]
-            shared_demo_state["deployments"] = st.session_state.deployments
+
+            shared_demo_state["deployments"] = (
+                st.session_state.deployments
+            )
 
             st.session_state.logs.insert(
                 0,
@@ -1069,7 +1117,10 @@ if st.session_state.deployments:
                 "node": server_name,
                 "reason": "Application resources released successfully"
             }
-            shared_demo_state["last_decision"] = st.session_state.last_decision
+
+            shared_demo_state["last_decision"] = (
+                st.session_state.last_decision
+            )
 
             st.rerun()
 
@@ -1079,7 +1130,7 @@ else:
 
 
 # =========================================================
-# 19. ML-BASED COOLING PREDICTION
+# 20. ML-BASED COOLING PREDICTION
 # =========================================================
 
 st.divider()
@@ -1129,7 +1180,7 @@ st.caption(
 
 
 # =========================================================
-# 20. VIRTUAL COOLING RESPONSE
+# 21. VIRTUAL COOLING RESPONSE
 # =========================================================
 
 st.divider()
@@ -1232,12 +1283,8 @@ for col, (name, node) in zip(fan_cols, nodes.items()):
 
 
 # =========================================================
-# 21. SINGLE MQTT COMMAND PUBLISH BLOCK
+# 22. SINGLE MQTT COMMAND PUBLISH BLOCK
 # =========================================================
-
-# Only this section publishes fan commands.
-# Manual mode sends slider values.
-# Automatic mode sends ML predicted values.
 
 final_payload = {
 
@@ -1302,7 +1349,7 @@ st.caption(
 
 
 # =========================================================
-# 22. EVENT LOG
+# 23. EVENT LOG
 # =========================================================
 
 st.divider()
@@ -1319,7 +1366,7 @@ else:
 
 
 # =========================================================
-# 23. PROTOTYPE ARCHITECTURE AND LIMITATIONS
+# 24. PROTOTYPE ARCHITECTURE AND LIMITATIONS
 # =========================================================
 
 st.divider()
