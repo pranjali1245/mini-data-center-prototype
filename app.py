@@ -1607,6 +1607,140 @@ st.caption(
     "They are not measured electrical consumption."
 )
 
+# =========================================================
+# 22B. HTES - VIRTUAL THERMAL EFFICIENCY SCORE
+# =========================================================
+
+st.divider()
+st.subheader("🌡️ HTES — Thermal Efficiency Score")
+
+def calculate_htes(temperature, fan_speed):
+
+    # Temperature score:
+    # Lower temperature gives a higher score.
+    temperature_score = max(
+        0,
+        min(100, 100 - max(0, temperature - 25) * 2.5)
+    )
+
+    # Fan effort score:
+    # Lower fan effort gives a higher score.
+    fan_effort_score = max(
+        75,
+        min(100, 100 - fan_speed * 0.25)
+    )
+
+    # Combined virtual thermal management score
+    htes = (
+        temperature_score * 0.70
+        + fan_effort_score * 0.30
+    )
+
+    return round(htes, 1)
+
+
+# Calculate zone-wise scores
+
+htes_rows = []
+zone_scores = []
+
+for i, (name, node) in enumerate(nodes.items()):
+
+    temperature = float(node["temperature"])
+    fan_speed = float(final_fan_commands[name])
+
+    score = calculate_htes(
+        temperature,
+        fan_speed
+    )
+
+    zone_scores.append(score)
+
+    if score >= 85:
+        status = "Excellent"
+    elif score >= 70:
+        status = "Good"
+    elif score >= 50:
+        status = "Moderate"
+    else:
+        status = "Needs Attention"
+
+    htes_rows.append({
+
+        "Virtual Server": name,
+        "Temperature (°C)": round(temperature, 1),
+        "Fan Speed (%)": round(fan_speed, 1),
+        "HTES Score (%)": score,
+        "Thermal Status": status
+    })
+
+
+# Overall HTES
+
+overall_htes = round(
+    sum(zone_scores) / len(zone_scores),
+    1
+) if zone_scores else 0
+
+
+if overall_htes >= 85:
+    overall_status = "Excellent"
+elif overall_htes >= 70:
+    overall_status = "Good"
+elif overall_htes >= 50:
+    overall_status = "Moderate"
+else:
+    overall_status = "Needs Attention"
+
+
+# Display overall score
+
+h1, h2 = st.columns(2)
+
+h1.metric(
+    "Overall HTES",
+    f"{overall_htes}%"
+)
+
+h2.metric(
+    "Thermal Management Status",
+    overall_status
+)
+
+
+st.progress(
+    int(max(0, min(100, overall_htes))),
+    text=f"Virtual Thermal Efficiency Score: {overall_htes}%"
+)
+
+
+# Zone-wise score table
+
+st.markdown("### Zone-wise HTES Analysis")
+
+st.dataframe(
+    pd.DataFrame(htes_rows),
+    use_container_width=True,
+    hide_index=True
+)
+
+
+# Score explanation
+
+st.markdown("### How HTES is calculated")
+
+st.write(
+    "HTES = (Temperature Score × 70%) + "
+    "(Fan Effort Score × 30%)"
+)
+
+st.caption(
+    "A lower temperature improves the temperature score, "
+    "while lower fan effort improves the fan-effort score. "
+    "This is an illustrative virtual thermal-management index, "
+    "not a measured heat-transfer or cooling efficiency value."
+)
+
 
 # =========================================================
 # 23. EVENT LOG
