@@ -664,12 +664,13 @@ if mqtt_snapshot["latest"]:
         f"Last ESP32 message received at "
         f"{mqtt_snapshot['last_seen']}."
     )
-
-  st.caption(
+    st.caption(
     "Virtual water flow is automatically calculated by ESP32 "
     "from average fan speed (0–100%), with a simulated range "
     "of 0–20 L/min. It is not a physical water-flow measurement."
-)
+    )
+
+  
 
 else:
 
