@@ -1519,6 +1519,96 @@ st.caption(
 
 
 # =========================================================
+# 22A. VIRTUAL POWER CONSUMPTION ANALYTICS
+# =========================================================
+
+st.divider()
+st.subheader("⚡ Estimated Power Consumption Analytics")
+
+
+def calculate_virtual_power(node, fan_speed):
+
+    power = (
+        2.5
+        + (node["cpu"] * 0.035)
+        + (node["ram"] * 0.015)
+        + (node["gpu"] * 0.020)
+        + (fan_speed * 0.005)
+    )
+
+    return round(power, 2)
+
+
+power_rows = []
+total_power = 0.0
+
+for name, node in nodes.items():
+
+    fan_speed = final_fan_commands[name]
+
+    estimated_power = calculate_virtual_power(
+        node,
+        fan_speed
+    )
+
+    total_power += estimated_power
+
+    power_rows.append({
+
+        "Virtual Server": name,
+        "CPU Usage (%)": round(node["cpu"], 1),
+        "RAM Usage (%)": round(node["ram"], 1),
+        "GPU Usage (%)": round(node["gpu"], 1),
+        "Fan Speed (%)": fan_speed,
+        "Estimated Power (W)": estimated_power
+    })
+
+
+# Total estimated energy for one hour
+hourly_energy = total_power / 1000
+
+
+p1, p2, p3 = st.columns(3)
+
+p1.metric(
+    "Pi 1 Estimated Power",
+    f"{power_rows[0]['Estimated Power (W)']:.2f} W"
+)
+
+p2.metric(
+    "Pi 2 Estimated Power",
+    f"{power_rows[1]['Estimated Power (W)']:.2f} W"
+)
+
+p3.metric(
+    "Total Estimated Power",
+    f"{total_power:.2f} W"
+)
+
+
+st.markdown("### Server-wise Power Details")
+
+st.dataframe(
+    pd.DataFrame(power_rows),
+    use_container_width=True,
+    hide_index=True
+)
+
+
+st.metric(
+    "Estimated Energy Consumption (1 Hour)",
+    f"{hourly_energy:.4f} kWh"
+)
+
+
+st.caption(
+    "Power and energy values are calculated using a virtual "
+    "demonstration formula based on CPU, RAM, GPU and fan commands. "
+    "They are not measured electrical consumption."
+)
+
+
+# =========================================================
 # 23. EVENT LOG
 # =========================================================
 
