@@ -44,6 +44,39 @@ h2, h3 { color: #e5f2ff; }
 [data-testid="stAlert"] { border-radius: 12px; }
 [data-testid="stDataFrame"] { border: 1px solid #263a54; border-radius: 12px; overflow: hidden; }
 footer { visibility: hidden; }
+
+/* Readability and contrast refinements */
+html, body, [class*="css"], .stApp { color: #e8f0f8 !important; }
+.stMarkdown, .stMarkdown p, .stMarkdown li, .stMarkdown span,
+[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p,
+.stText, p, li, label, legend { color: #dce7f2; }
+.stMarkdown strong, strong, b { color: #ffffff !important; font-weight: 700; }
+h1 { color: #f7fbff !important; font-size: clamp(2rem, 3vw, 2.7rem) !important; }
+h2 { color: #eaf5ff !important; font-size: 1.55rem !important; margin-top: .45rem; }
+h3 { color: #d8f4f4 !important; font-size: 1.18rem !important; }
+[data-testid="stMetricLabel"] p { color: #b8c9da !important; font-size: .88rem !important; }
+[data-testid="stMetricValue"] div { color: #ffffff !important; font-weight: 750 !important; }
+[data-testid="stMetricDelta"] { color: #70e0b8 !important; }
+[data-testid="stCaptionContainer"] p { color: #aebfd0 !important; font-size: .82rem !important; }
+.stTextInput label, .stNumberInput label, .stSelectbox label,
+.stSlider label, .stToggle label, .stCheckbox label,
+.stRadio label, .stMultiSelect label, .stTextArea label { color: #dceaf7 !important; font-weight: 600; }
+.stTextInput input, .stNumberInput input, .stTextArea textarea,
+[data-baseweb="select"] > div { color: #f4f8fc !important; background-color: #101d2e !important; border-color: #3a526d !important; }
+[data-baseweb="select"] * { color: #f4f8fc !important; }
+[data-testid="stDataFrame"] *, [data-testid="stTable"] * { color: #eaf2fa !important; }
+[data-testid="stAlert"] p, [data-testid="stAlert"] li { color: #f1f6fb !important; }
+[data-testid="stExpander"] summary, [data-testid="stExpander"] details { color: #eaf2fa !important; }
+.stTabs [data-baseweb="tab"] { color: #c5d6e7 !important; font-weight: 650; }
+.stTabs [aria-selected="true"] { color: #62e0d7 !important; }
+.stButton button, .stDownloadButton button { color: #ffffff !important; font-size: .94rem; }
+[data-testid="stProgressBar"] { background: #26384d; border-radius: 99px; }
+hr { margin-top: 1.3rem; margin-bottom: 1.3rem; }
+@media (max-width: 700px) {
+  .block-container { padding-left: 1rem; padding-right: 1rem; }
+  [data-testid="stMetric"] { padding: 11px 12px; }
+}
+
 </style>
 <div style="padding:24px 26px 22px; margin:0 0 22px; border:1px solid #2a526b; border-radius:20px; background:linear-gradient(115deg,rgba(16,53,72,.96),rgba(17,30,51,.96) 58%,rgba(24,49,69,.94)); box-shadow:0 16px 38px rgba(0,0,0,.22);">
   <div style="display:flex; align-items:center; gap:10px; color:#62e0d7; font-size:12px; font-weight:750; letter-spacing:2px; text-transform:uppercase;">● LIVE PROTOTYPE <span style="color:#7793a9;">|</span> SMART DATA CENTER</div>
