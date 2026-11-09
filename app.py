@@ -1794,52 +1794,9 @@ if st.button(
     st.rerun()
 
 
-# =========================================================
-# 26. MQTT COMMAND PUBLISHING
-# =========================================================
-
-st.markdown("---")
-st.subheader(" ESP32 Cooling Command Communication")
-
-final_payload = {
-    "fan1_speed": int(final_fan_commands["fan1"]),
-    "fan2_speed": int(final_fan_commands["fan2"]),
-    "zone1_heat": round(zone_temperatures[0], 1),
-    "zone2_heat": round(zone_temperatures[1], 1),
-    "mode": "manual" if manual_mode else "automatic"
-}
-
-st.json(final_payload)
-
-if st.button(
-    "Send Cooling Commands to ESP32",
-    use_container_width=True
-):
-    if mqtt_connection is not None:
-        try:
-            result = mqtt_connection.publish(
-                COMMAND_TOPIC,
-                json.dumps(final_payload)
-            )
-
-            if result.rc == mqtt.MQTT_ERR_SUCCESS:
-                st.success("Cooling commands published to MQTT broker.")
-            else:
-                st.error(
-                    f"MQTT publish failed. Return code: {result.rc}"
-                )
-
-        except Exception as error:
-            st.error(f"Unable to publish MQTT command: {error}")
-
-    else:
-        st.warning(
-            "MQTT is not connected. Commands are displayed in simulation mode."
-        )
-
 
 # =========================================================
-# 27.  POWER CONSUMPTION ANALYTICS
+# 26 was deleted 27.  POWER CONSUMPTION ANALYTICS
 # =========================================================
 
 st.markdown("---")
