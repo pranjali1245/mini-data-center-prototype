@@ -163,7 +163,7 @@ st.markdown("""
     <p>
         AI-Powered Smart Data Center Cooling & Workload Management
         <br>
-        Virtual Prototype | ESP32 • MQTT • Machine Learning • Smart Scheduling
+       ESP32 • MQTT • Machine Learning • Smart Scheduling
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -449,12 +449,12 @@ app_catalog = {
 
 
 # =========================================================
-# 8. DEFAULT VIRTUAL SERVERS
+# 8. DEFAULT  SERVERS
 # =========================================================
 
 DEFAULT_NODES = {
 
-    "Virtual Raspberry Pi 1": {
+    " Raspberry Pi 1": {
         "temperature": 35.0,
         "base_cpu": 20.0,
         "base_ram": 20.0,
@@ -467,7 +467,7 @@ DEFAULT_NODES = {
         "apps": []
     },
 
-    "Virtual Raspberry Pi 2": {
+    " Raspberry Pi 2": {
         "temperature": 32.0,
         "base_cpu": 20.0,
         "base_ram": 20.0,
@@ -640,11 +640,11 @@ else:
 
 if live_mode and mqtt_snapshot["latest"]:
 
-    nodes["Virtual Raspberry Pi 1"]["temperature"] = (
+    nodes[" Raspberry Pi 1"]["temperature"] = (
         mqtt_snapshot["latest"]["zone1_temp"]
     )
 
-    nodes["Virtual Raspberry Pi 2"]["temperature"] = (
+    nodes[" Raspberry Pi 2"]["temperature"] = (
         mqtt_snapshot["latest"]["zone2_temp"]
     )
 
@@ -738,10 +738,8 @@ if st.sidebar.button("↺ Reset Demonstration"):
 # =========================================================
 
 st.info(
-    "Hydro-Trace is a virtual data center prototype. "
-    "ESP32 telemetry is received through MQTT. Raspberry Pi nodes, "
-    "CPU/RAM/GPU values, cooling response, water flow and power "
-    "calculations are virtual simulations."
+    "Intelligent Data Center. Smarter Cooling. Sustainable Computing.
+AI-Driven Thermal Intelligence & Workload Orchestration"
 )
 # =========================================================
 # 14. ESP32 MQTT LIVE SENSOR MONITORING
@@ -797,7 +795,7 @@ if mqtt_snapshot["latest"]:
     water_flow = live.get("water_flow")
 
     m4.metric(
-        "Virtual Water Flow",
+        " Water Flow",
         f"{water_flow:.2f} L/min"
         if water_flow is not None
         else "Not available"
@@ -818,7 +816,7 @@ if mqtt_snapshot["latest"]:
     )
 
     st.caption(
-        "Water flow is a virtual value calculated from fan speed. "
+        "Water flow is a  value calculated from fan speed. "
         "It is not a physical water-flow measurement."
     )
 
@@ -894,7 +892,7 @@ if history:
         )
 
         st.caption(
-            "Virtual cooling fan commands received from ESP32."
+            " cooling fan commands received from ESP32."
         )
 
     # -----------------------------------------------------
@@ -907,7 +905,7 @@ if history:
 
     with graph_col3:
 
-        st.markdown("#### 💧 Virtual Water Flow")
+        st.markdown("#### 💧  Water Flow")
 
         if (
             "Water Flow (L/min)" in history_df.columns
@@ -967,7 +965,7 @@ if history:
             )
 
             st.caption(
-                "Relationship between average fan speed and virtual flow."
+                "Relationship between average fan speed and  flow."
             )
 
         else:
@@ -1076,7 +1074,7 @@ if analytics_history:
     )
 
     c3.metric(
-        "Virtual Water Flow",
+        " Water Flow",
         f"{water_flow:.2f} L/min"
     )
 
@@ -1131,11 +1129,11 @@ else:
 
 
 # =========================================================
-# 17. VIRTUAL SERVER MONITORING
+# 17.  SERVER MONITORING
 # =========================================================
 
 st.divider()
-st.subheader("🖥️ Virtual Data Center Server Monitoring")
+st.subheader("🖥️  Data Center Server Monitoring")
 
 cols = st.columns(2, gap="large")
 
@@ -1555,17 +1553,17 @@ zone_temperatures = [
     float(mqtt_snapshot.get("zone2_temp", 30))
 ]
 
-# Safely read virtual server data
+# Safely read  server data
 
 current_nodes = st.session_state.get("nodes", [])
 
-# Ensure two virtual servers are available
+# Ensure two  servers are available
 if not isinstance(current_nodes, list):
     current_nodes = []
 
 while len(current_nodes) < 2:
     current_nodes.append({
-        "name": f"Virtual Raspberry Pi {len(current_nodes) + 1}",
+        "name": f" Raspberry Pi {len(current_nodes) + 1}",
         "temperature": 30,
         "base_cpu": 100,
         "base_ram": 100,
@@ -1688,11 +1686,11 @@ else:
 
 
 # =========================================================
-# 25. VIRTUAL COOLING CONTROL
+# 25.  COOLING CONTROL
 # =========================================================
 
 st.markdown("---")
-st.subheader("25. Virtual Cooling Control")
+st.subheader("25.  Cooling Control")
 
 st.write(
     "Choose automatic AI-based cooling or manually control the fan speeds."
@@ -1750,7 +1748,7 @@ with cooling_col2:
         f"{final_fan_commands['fan2']}%"
     )
 
-st.markdown("#### Virtual Cooling Response")
+st.markdown("####  Cooling Response")
 
 st.caption(
     "This is a software simulation of cooling response, not a measurement "
@@ -1758,7 +1756,7 @@ st.caption(
 )
 
 if st.button(
-    "Apply Virtual Cooling",
+    "Apply  Cooling",
     use_container_width=True
 ):
     for index, fan_key in enumerate(["fan1", "fan2"]):
@@ -1786,13 +1784,13 @@ if st.button(
     st.session_state.logs.append({
         "time": datetime.now().strftime("%H:%M:%S"),
         "event": (
-            "Virtual cooling applied: "
+            " cooling applied: "
             f"Fan 1 = {final_fan_commands['fan1']}%, "
             f"Fan 2 = {final_fan_commands['fan2']}%"
         )
     })
 
-    st.success("Virtual cooling response applied successfully.")
+    st.success(" cooling response applied successfully.")
     st.rerun()
 
 
@@ -1841,11 +1839,11 @@ if st.button(
 
 
 # =========================================================
-# 27. VIRTUAL POWER CONSUMPTION ANALYTICS
+# 27.  POWER CONSUMPTION ANALYTICS
 # =========================================================
 
 st.markdown("---")
-st.subheader("27. Virtual Power Consumption Analytics")
+st.subheader("27.  Power Consumption Analytics")
 
 # Illustrative power model:
 # Base server power + fan power based on fan speed.
@@ -1872,13 +1870,13 @@ power_col1, power_col2, power_col3 = st.columns(3)
 
 with power_col1:
     st.metric(
-        "Virtual Server Power",
+        " Server Power",
         f"{server_power:.1f} W"
     )
 
 with power_col2:
     st.metric(
-        "Virtual Cooling Power",
+        " Cooling Power",
         f"{total_fan_power:.1f} W"
     )
 
@@ -1891,7 +1889,7 @@ with power_col3:
 st.metric(
     "Estimated Energy Consumption",
     f"{estimated_hourly_energy:.4f} kWh",
-    help="Estimated energy for one hour at the current virtual power level."
+    help="Estimated energy for one hour at the current  power level."
 )
 
 st.caption(
@@ -2038,15 +2036,15 @@ st.markdown("""
 ### How the prototype works
 
 1. **ESP32 Sensor Simulation**  
-   Virtual temperature, humidity, and cooling-related sensor readings
+   temperature, humidity, and cooling-related sensor readings
    are generated using Wokwi.
 
 2. **MQTT Communication**  
    Sensor data is transmitted through an MQTT broker to the Streamlit
    dashboard.
 
-3. **Virtual Data Center Monitoring**  
-   Two virtual Raspberry Pi servers represent separate computing nodes.
+3. ** Data Center Monitoring**  
+   Two  Raspberry Pi servers represent separate computing nodes.
    Their CPU, RAM, workload, and temperature are monitored.
 
 4. **Intelligent Workload Scheduling**  
@@ -2062,16 +2060,16 @@ st.markdown("""
    ESP32 simulation.
 
 7. **Power and Thermal Analytics**  
-   The dashboard estimates virtual power consumption and calculates
+   The dashboard estimates  power consumption and calculates
    the Hydro-Trace Thermal Efficiency Score (HTES).
 """)
 
 st.markdown("### Prototype Scope and Limitations")
 
 st.info("""
-This is a virtual proof-of-concept prototype.
+This is a  proof-of-concept prototype.
 
-- Raspberry Pi servers are represented by software-based virtual nodes.
+- Raspberry Pi servers are represented by software-based  nodes.
 - ESP32 and sensor behavior is demonstrated through Wokwi simulation.
 - Cooling response and power consumption are software estimates.
 - MQTT communication demonstrates the sensor-to-dashboard and
@@ -2093,7 +2091,7 @@ st.markdown(
             Smart Data Center Monitoring
         </p>
         <p style="color:#94a3b8; font-size:12px;">
-            Virtual Prototype Demonstration
+             Prototype Demonstration
         </p>
     </div>
     """,
