@@ -1417,7 +1417,7 @@ if st.button(
 # =========================================================
 
 st.markdown("---")
-st.subheader("21. Latest Workload Scheduling Decision")
+st.subheader(" Latest Workload Scheduling Decision")
 
 last_decision = st.session_state.get("last_decision")
 
@@ -1432,7 +1432,7 @@ else:
 # =========================================================
 
 st.markdown("---")
-st.subheader("22. Running Applications")
+st.subheader(" Running Applications")
 
 deployment_records = st.session_state.get("deployments", [])
 
@@ -1470,7 +1470,7 @@ else:
 # =========================================================
 
 st.markdown("---")
-st.subheader("23. Application Management")
+st.subheader(" Application Management")
 
 current_deployments = st.session_state.get("deployments", [])
 
@@ -1541,7 +1541,7 @@ else:
 # =========================================================
 
 st.markdown("---")
-st.subheader("24. AI-Based Cooling Prediction")
+st.subheader(" AI-Based Cooling Prediction")
 
 fan_commands = {
     "fan1": 30,
@@ -1690,7 +1690,7 @@ else:
 # =========================================================
 
 st.markdown("---")
-st.subheader("25.  Cooling Control")
+st.subheader("  Cooling Control")
 
 st.write(
     "Choose automatic AI-based cooling or manually control the fan speeds."
@@ -1799,7 +1799,7 @@ if st.button(
 # =========================================================
 
 st.markdown("---")
-st.subheader("26. ESP32 Cooling Command Communication")
+st.subheader(" ESP32 Cooling Command Communication")
 
 final_payload = {
     "fan1_speed": int(final_fan_commands["fan1"]),
@@ -1843,7 +1843,7 @@ if st.button(
 # =========================================================
 
 st.markdown("---")
-st.subheader("27.  Power Consumption Analytics")
+st.subheader("  Power Consumption Analytics")
 
 # Illustrative power model:
 # Base server power + fan power based on fan speed.
@@ -1903,7 +1903,7 @@ st.caption(
 # =========================================================
 
 st.markdown("---")
-st.subheader("28. Hydro-Trace Thermal Efficiency Score (HTES)")
+st.subheader(" Hydro-Trace Thermal Efficiency Score (HTES)")
 
 def calculate_thermal_score(temperature):
     if temperature <= 30:
