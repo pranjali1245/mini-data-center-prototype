@@ -22,74 +22,11 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown("""
-<style>
-/* Hydro-Trace dashboard theme */
-:root { --ht-bg: #0b1220; --ht-panel: #111c2e; --ht-border: #24344d; --ht-cyan: #42d6d0; }
-.stApp { background: radial-gradient(ellipse at 12% 0%, #142b42 0%, #0b1220 48%, #08101b 100%); }
-.block-container { max-width: 1500px; padding-top: 1.6rem; padding-bottom: 3rem; }
-[data-testid="stHeader"] { background: rgba(8,16,27,.75); }
-[data-testid="stMetric"] { background: linear-gradient(145deg, rgba(23,39,60,.96), rgba(15,27,43,.96)); border: 1px solid #2a405b; padding: 15px 17px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.16); }
-[data-testid="stMetricLabel"] { color: #9fb4ca; }
-[data-testid="stMetricValue"] { color: #f2f7fc; }
-[data-testid="stMetricDelta"] { color: #42d6a4; }
-.stButton > button, .stDownloadButton > button { border-radius: 10px; border: 1px solid #2b7180; background: linear-gradient(100deg,#167b87,#1760a0); color: white; font-weight: 650; min-height: 2.6rem; transition: .18s ease; }
-.stButton > button:hover, .stDownloadButton > button:hover { border-color: #55e4dc; color: white; transform: translateY(-1px); }
-.stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"], .stTextArea textarea { background: #101d2e; border-radius: 9px; }
-[data-testid="stVerticalBlockBorderWrapper"] { background: rgba(17,28,46,.68); border: 1px solid #263a54; border-radius: 15px; }
-hr { border-color: #263a54; }
-h1, h2, h3 { letter-spacing: -.025em; }
-h2, h3 { color: #e5f2ff; }
-[data-testid="stProgressBar"] > div > div { background: linear-gradient(90deg,#19a6a6,#55dfbd); }
-[data-testid="stAlert"] { border-radius: 12px; }
-[data-testid="stDataFrame"] { border: 1px solid #263a54; border-radius: 12px; overflow: hidden; }
-footer { visibility: hidden; }
-
-/* Readability and contrast refinements */
-html, body, [class*="css"], .stApp { color: #e8f0f8 !important; }
-.stMarkdown, .stMarkdown p, .stMarkdown li, .stMarkdown span,
-[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p,
-.stText, p, li, label, legend { color: #dce7f2; }
-.stMarkdown strong, strong, b { color: #ffffff !important; font-weight: 700; }
-h1 { color: #f7fbff !important; font-size: clamp(2rem, 3vw, 2.7rem) !important; }
-h2 { color: #eaf5ff !important; font-size: 1.55rem !important; margin-top: .45rem; }
-h3 { color: #d8f4f4 !important; font-size: 1.18rem !important; }
-[data-testid="stMetricLabel"] p { color: #b8c9da !important; font-size: .88rem !important; }
-[data-testid="stMetricValue"] div { color: #ffffff !important; font-weight: 750 !important; }
-[data-testid="stMetricDelta"] { color: #70e0b8 !important; }
-[data-testid="stCaptionContainer"] p { color: #aebfd0 !important; font-size: .82rem !important; }
-.stTextInput label, .stNumberInput label, .stSelectbox label,
-.stSlider label, .stToggle label, .stCheckbox label,
-.stRadio label, .stMultiSelect label, .stTextArea label { color: #dceaf7 !important; font-weight: 600; }
-.stTextInput input, .stNumberInput input, .stTextArea textarea,
-[data-baseweb="select"] > div { color: #f4f8fc !important; background-color: #101d2e !important; border-color: #3a526d !important; }
-[data-baseweb="select"] * { color: #f4f8fc !important; }
-[data-testid="stDataFrame"] *, [data-testid="stTable"] * { color: #eaf2fa !important; }
-[data-testid="stAlert"] p, [data-testid="stAlert"] li { color: #f1f6fb !important; }
-[data-testid="stExpander"] summary, [data-testid="stExpander"] details { color: #eaf2fa !important; }
-.stTabs [data-baseweb="tab"] { color: #c5d6e7 !important; font-weight: 650; }
-.stTabs [aria-selected="true"] { color: #62e0d7 !important; }
-.stButton button, .stDownloadButton button { color: #ffffff !important; font-size: .94rem; }
-[data-testid="stProgressBar"] { background: #26384d; border-radius: 99px; }
-hr { margin-top: 1.3rem; margin-bottom: 1.3rem; }
-@media (max-width: 700px) {
-  .block-container { padding-left: 1rem; padding-right: 1rem; }
-  [data-testid="stMetric"] { padding: 11px 12px; }
-}
-
-</style>
-<div style="padding:24px 26px 22px; margin:0 0 22px; border:1px solid #2a526b; border-radius:20px; background:linear-gradient(115deg,rgba(16,53,72,.96),rgba(17,30,51,.96) 58%,rgba(24,49,69,.94)); box-shadow:0 16px 38px rgba(0,0,0,.22);">
-  <div style="display:flex; align-items:center; gap:10px; color:#62e0d7; font-size:12px; font-weight:750; letter-spacing:2px; text-transform:uppercase;">● LIVE PROTOTYPE <span style="color:#7793a9;">|</span> SMART DATA CENTER</div>
-  <div style="font-size:clamp(28px,4vw,42px); font-weight:800; color:#f4f9ff; line-height:1.15; margin-top:9px;">HYDRO-TRACE <span style="color:#55d9d0;">//</span> AI Water-Saving Engine</div>
-  <div style="color:#b4c8d9; font-size:15px; margin-top:10px;">Intelligent workload scheduling · Thermal monitoring · ML-based virtual cooling</div>
-  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:17px;">
-    <span style="background:#153e4c;color:#8cebe2;padding:6px 11px;border-radius:20px;font-size:12px;">ESP32 Telemetry</span>
-    <span style="background:#203650;color:#a9d6ff;padding:6px 11px;border-radius:20px;font-size:12px;">MQTT Connected</span>
-    <span style="background:#26334c;color:#c9caff;padding:6px 11px;border-radius:20px;font-size:12px;">Random Forest ML</span>
-    <span style="background:#234236;color:#a8edc8;padding:6px 11px;border-radius:20px;font-size:12px;">2 Virtual Nodes</span>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+st.title("🖥️ Hydro-Trace — AI Water-Saving Engine")
+st.caption(
+    "Virtual Data Center Prototype | "
+    "ESP32 + MQTT + ML Cooling + Workload Scheduling"
+)
 
 
 # =========================================================
@@ -650,7 +587,7 @@ st.info(
 # 11. ESP32 MQTT CONNECTION DISPLAY
 # =========================================================
 
-st.subheader("🔌  Live Sensor & Connectivity")
+st.subheader("0. ESP32 → MQTT Live Sensor Data")
 
 if mqtt_snapshot["connected"]:
 
@@ -741,7 +678,7 @@ else:
 # =========================================================
 
 st.divider()
-st.subheader("📈  Live Thermal & Cooling Analytics")
+st.subheader("📈 Live Temperature and Cooling Analytics")
 
 history = mqtt_snapshot.get("history", [])
 
@@ -793,7 +730,7 @@ else:
 # 13. VIRTUAL SERVER MONITORING
 # =========================================================
 
-st.subheader("🖥️  Virtual Server Command Center")
+st.subheader("1. Virtual Server Monitoring")
 
 cols = st.columns(2)
 
@@ -850,7 +787,7 @@ for col, (name, data) in zip(cols, nodes.items()):
 # =========================================================
 
 st.divider()
-st.subheader("🚀  Workload Deployment")
+st.subheader("2. Submit a New Application")
 
 left, right = st.columns([2, 1])
 
@@ -1037,7 +974,7 @@ if st.session_state.last_decision:
 # =========================================================
 
 st.divider()
-st.subheader("📦  Active Workloads")
+st.subheader("3. Running Applications")
 
 if st.session_state.deployments:
 
@@ -1072,7 +1009,7 @@ else:
 # =========================================================
 
 st.divider()
-st.subheader("🧹  Workload Management")
+st.subheader("4. Remove a Running Application")
 
 if st.session_state.deployments:
 
@@ -1146,7 +1083,7 @@ else:
 # =========================================================
 
 st.divider()
-st.subheader("🧠  ML Cooling Intelligence")
+st.subheader("5. ML-Based Cooling Prediction")
 
 cool_rows = []
 fan_commands = {}
@@ -1196,7 +1133,7 @@ st.caption(
 # =========================================================
 
 st.divider()
-st.subheader("❄️  Smart Cooling Control")
+st.subheader("6. Virtual Cooling Response")
 
 manual_mode = st.toggle(
     "Enable Manual Fan Control",
@@ -1369,7 +1306,7 @@ st.caption(
 # =========================================================
 
 st.divider()
-st.subheader("🧾  System Activity & Event Log")
+st.subheader("7. Execution and System Event Log")
 
 if st.session_state.logs:
 
@@ -1386,7 +1323,7 @@ else:
 # =========================================================
 
 st.divider()
-st.subheader("🏗️  Architecture & Demo Scope")
+st.subheader("8. Prototype Architecture and Limitations")
 
 st.markdown("""
 - **Laptop/cloud app:** Central dashboard and Python scheduler.
