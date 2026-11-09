@@ -353,6 +353,10 @@ def add_log(message):
 # 11. RECALCULATE SERVER RESOURCES
 # =========================================================
 
+# =========================================================
+# 11. RECALCULATE SERVER RESOURCES
+# =========================================================
+
 def recalculate_node(node):
 
     cpu = node.get("base_cpu", 20)
@@ -361,7 +365,33 @@ def recalculate_node(node):
 
     heat = 0.0
 
-    for app_name in node.get("apps", []):
+    applications = node.get("apps", [])
+
+    # Handle old or unexpected application data formats
+    if not isinstance(applications, list):
+        applications = []
+
+    for item in applications:
+
+        # If old data contains a dictionary
+        if isinstance(item, dict):
+
+            app_name = (
+                item.get("name")
+                or item.get("app")
+                or item.get("application")
+            )
+
+        # If old data contains a string
+        elif isinstance(item, str):
+
+            app_name = item
+
+        else:
+            continue
+
+        if not isinstance(app_name, str):
+            continue
 
         if app_name in APP_CATALOG:
 
@@ -373,30 +403,32 @@ def recalculate_node(node):
 
             heat += app["heat"]
 
+    node["apps"] = [
+        item if isinstance(item, str)
+        else (
+            item.get("name")
+            or item.get("app")
+            or item.get("application")
+        )
+        for item in applications
+        if (
+            isinstance(item, str)
+            or (
+                isinstance(item, dict)
+                and (
+                    item.get("name")
+                    or item.get("app")
+                    or item.get("application")
+                )
+            )
+        )
+    ]
+
     node["cpu"] = min(cpu, 100)
     node["ram"] = min(ram, 100)
     node["gpu"] = min(gpu, 100)
 
     node["heat"] = min(heat, 2.0)
-
-
-for node in st.session_state.nodes.values():
-
-    if "base_gpu" not in node:
-        node["base_gpu"] = 10
-
-    if "gpu" not in node:
-        node["gpu"] = node["base_gpu"]
-
-    if "fan_speed" not in node:
-        node["fan_speed"] = 30
-
-    if "apps" not in node:
-        node["apps"] = []
-
-    recalculate_node(node)
-
-
 # =========================================================
 # 12. VIRTUAL POWER ESTIMATION
 # =========================================================
