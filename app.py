@@ -468,11 +468,11 @@ if live_mode:
         interval=2000,
         key="mqtt_dashboard_refresh"
     )
-
-   st.sidebar.caption(
+    st.sidebar.caption(
     "Temperature and humidity arrive through Wokwi MQTT. "
     "Virtual water flow is calculated by ESP32 using fan speed."
     )
+
 
 else:
 
