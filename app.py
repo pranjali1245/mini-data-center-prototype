@@ -817,6 +817,119 @@ else:
         "Waiting for ESP32 telemetry. Start the Wokwi simulation "
         "to display live temperature, fan-speed and virtual water-flow graphs."
     )
+
+# =========================================================
+# COOLING PERFORMANCE ANALYTICS
+# =========================================================
+
+st.markdown("---")
+st.subheader("❄️ Cooling Performance Analytics")
+
+analytics_history = mqtt_snapshot.get("history", [])
+
+if analytics_history:
+
+    analytics_df = pd.DataFrame(analytics_history)
+
+    latest = analytics_df.iloc[-1]
+
+    # Current readings
+    temp1 = float(latest.get("Zone 1 Temperature", 20))
+    temp2 = float(latest.get("Zone 2 Temperature", 20))
+
+    fan1 = float(latest.get("Fan 1 Speed", 0))
+    fan2 = float(latest.get("Fan 2 Speed", 0))
+
+    water_flow = float(latest.get("Water Flow (L/min)", 0))
+
+    avg_fan_speed = (fan1 + fan2) / 2
+    avg_temperature = (temp1 + temp2) / 2
+    max_temperature = max(temp1, temp2)
+
+    # Temperature trend from previous reading
+    if len(analytics_df) >= 2:
+        previous = analytics_df.iloc[-2]
+
+        previous_avg_temp = (
+            float(previous.get("Zone 1 Temperature", temp1)) +
+            float(previous.get("Zone 2 Temperature", temp2))
+        ) / 2
+
+        temperature_change = avg_temperature - previous_avg_temp
+    else:
+        temperature_change = 0.0
+
+    # Demo cooling status
+    if max_temperature < 40:
+        cooling_status = "Normal"
+    elif max_temperature < 48:
+        cooling_status = "Monitor"
+    else:
+        cooling_status = "High Temperature"
+
+    # KPI Cards
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric(
+        "Average Temperature",
+        f"{avg_temperature:.1f} °C",
+        f"{temperature_change:+.2f} °C"
+    )
+
+    c2.metric(
+        "Average Fan Speed",
+        f"{avg_fan_speed:.0f}%"
+    )
+
+    c3.metric(
+        "Virtual Water Flow",
+        f"{water_flow:.2f} L/min"
+    )
+
+    c4.metric(
+        "Cooling Status",
+        cooling_status
+    )
+
+    st.markdown("### Zone-wise Cooling Response")
+
+    zone1_status = (
+        "Normal" if temp1 < 40
+        else "Monitor" if temp1 < 48
+        else "High Temperature"
+    )
+
+    zone2_status = (
+        "Normal" if temp2 < 40
+        else "Monitor" if temp2 < 48
+        else "High Temperature"
+    )
+
+    zone_data = pd.DataFrame({
+        "Zone": ["Zone 1", "Zone 2"],
+        "Temperature (°C)": [temp1, temp2],
+        "Fan Speed (%)": [fan1, fan2],
+        "Cooling Status": [zone1_status, zone2_status]
+    })
+
+    st.dataframe(
+        zone_data,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.caption(
+        "Temperature change shows the difference from the previous "
+        "telemetry reading. Water flow is simulated from average fan speed. "
+        "Cooling status uses demo thresholds, not real hardware safety limits."
+    )
+
+else:
+    st.info(
+        "Waiting for ESP32 telemetry. Cooling analytics will appear "
+        "when live readings are received."
+    )
+
 # =========================================================
 # 13. VIRTUAL SERVER MONITORING
 # =========================================================
