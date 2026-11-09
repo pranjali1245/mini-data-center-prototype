@@ -469,10 +469,10 @@ if live_mode:
         key="mqtt_dashboard_refresh"
     )
 
-    st.sidebar.caption(
-        "Temperature, humidity and water-flow readings "
-        "arrive through Wokwi MQTT."
-    )
+   st.sidebar.caption(
+    "Temperature and humidity arrive through Wokwi MQTT. "
+    "Virtual water flow is calculated by ESP32 using fan speed."
+)
 
 else:
 
@@ -579,12 +579,12 @@ if st.sidebar.button("↺ Reset demonstration"):
 # =========================================================
 
 st.info(
-    "Workload assignments are kept in shared in-memory state, so they survive browser refreshes while this Streamlit app process remains running. "
-    "ESP32 telemetry is received through MQTT. "
-    "Temperature and humidity are simulated/read through Wokwi "
-    "components. Water flow is simulated using a potentiometer. "
-    "Raspberry Pi nodes, CPU/RAM values and cooling model "
-    "remain virtual simulations."
+    "Workload assignments are kept in shared in-memory state, "
+    "so they survive browser refreshes while this Streamlit app "
+    "process remains running. ESP32 telemetry is received through MQTT. "
+    "Temperature and humidity are simulated/read through Wokwi components. "
+    "Water flow is calculated virtually by ESP32 from average fan speed. "
+    "Raspberry Pi nodes, CPU/RAM values and cooling model remain virtual simulations."
 )
 
 
@@ -665,10 +665,11 @@ if mqtt_snapshot["latest"]:
         f"{mqtt_snapshot['last_seen']}."
     )
 
-    st.caption(
-        "Water flow is a virtual 0–20 L/min value generated "
-        "from the Wokwi potentiometer, not a physical flow measurement."
-    )
+  st.caption(
+    "Virtual water flow is automatically calculated by ESP32 "
+    "from average fan speed (0–100%), with a simulated range "
+    "of 0–20 L/min. It is not a physical water-flow measurement."
+)
 
 else:
 
@@ -676,7 +677,6 @@ else:
         "No ESP32 telemetry received yet. "
         "Check Wokwi MQTT connection and topic."
     )
-
 
 # =========================================================
 # 12. LIVE TEMPERATURE, FAN AND WATER FLOW GRAPHS
@@ -690,10 +690,17 @@ history = mqtt_snapshot.get("history", [])
 if history:
 
     history_df = pd.DataFrame(history)
-    history_df["Time"] = pd.to_datetime(history_df["Time"])
+
+    history_df["Time"] = pd.to_datetime(
+        history_df["Time"]
+    )
+
     history_df = history_df.set_index("Time")
 
-    # Temperature graph
+    # -------------------------------------
+    # TEMPERATURE GRAPH
+    # -------------------------------------
+
     st.markdown("### 🌡️ Temperature vs Time")
 
     temperature_df = history_df[[
@@ -708,7 +715,10 @@ if history:
         height=300
     )
 
-    # Fan speed graph
+    # -------------------------------------
+    # FAN SPEED GRAPH
+    # -------------------------------------
+
     st.markdown("### 🌀 Fan Speed vs Time")
 
     fan_df = history_df[[
@@ -723,7 +733,10 @@ if history:
         height=300
     )
 
-    # Water flow graph
+    # -------------------------------------
+    # WATER FLOW VS TIME
+    # -------------------------------------
+
     st.markdown("### 💧 Water Flow Rate vs Time")
 
     if (
@@ -737,7 +750,7 @@ if history:
 
         st.line_chart(
             water_flow_df,
-            y_label="Water Flow (L/min)",
+            y_label="Virtual Water Flow (L/min)",
             x_label="Time",
             height=300
         )
@@ -745,26 +758,64 @@ if history:
     else:
 
         st.info(
-            "Waiting for water-flow values from the Wokwi "
-            "potentiometer through ESP32 MQTT telemetry."
+            "Waiting for calculated water-flow values "
+            "from ESP32 MQTT telemetry."
+        )
+
+    # -------------------------------------
+    # WATER FLOW VS AVERAGE FAN SPEED
+    # -------------------------------------
+
+    st.markdown(
+        "### 💧🌀 Water Flow vs Average Fan Speed"
+    )
+
+    relationship_df = history_df[
+        [
+            "Water Flow (L/min)",
+            "Fan 1 Speed",
+            "Fan 2 Speed"
+        ]
+    ].dropna(
+        subset=["Water Flow (L/min)"]
+    ).copy()
+
+    if not relationship_df.empty:
+
+        relationship_df["Average Fan Speed (%)"] = (
+            relationship_df["Fan 1 Speed"]
+            + relationship_df["Fan 2 Speed"]
+        ) / 2
+
+        st.scatter_chart(
+            relationship_df,
+            x="Average Fan Speed (%)",
+            y="Water Flow (L/min)",
+            x_label="Average Fan Speed (%)",
+            y_label="Virtual Water Flow (L/min)",
+            height=350
+        )
+
+    else:
+
+        st.info(
+            "Waiting for fan-speed and water-flow readings."
         )
 
     st.caption(
-        "Graphs display ESP32 telemetry received through MQTT. "
+        "All graphs display ESP32 telemetry received through MQTT. "
         "The latest 300 readings are kept in memory; history resets "
         "when the Streamlit app process restarts. "
-        "Water flow is simulated using a Wokwi potentiometer "
-        "(0–20 L/min)."
+        "Water flow is a simulated value calculated from average fan speed, "
+        "not a physical water-flow measurement."
     )
 
 else:
 
     st.info(
         "Waiting for ESP32 telemetry. Start the Wokwi simulation "
-        "to display live temperature, fan-speed and water-flow graphs."
+        "to display live temperature, fan-speed and virtual water-flow graphs."
     )
-
-
 # =========================================================
 # 13. VIRTUAL SERVER MONITORING
 # =========================================================
@@ -1382,7 +1433,7 @@ st.markdown("""
 - **ESP32:** Receives fan commands and publishes telemetry through MQTT.
 - **Temperature:** Wokwi potentiometers simulate temperature inputs.
 - **Humidity:** Wokwi DHT22 provides simulated humidity readings.
-- **Water flow:** Wokwi potentiometer on GPIO 32 simulates a 0–20 L/min value.
+- **Water flow:** ESP32 calculates a virtual 0–20 L/min value from average fan speed. It is not measured by a physical flow sensor.
 - **Cooling:** Wokwi LEDs represent fan speed; they do not create physical airflow.
 - **Hardware limitation:** Virtual Raspberry Pi nodes do not execute real Linux
   processes or Docker containers.
