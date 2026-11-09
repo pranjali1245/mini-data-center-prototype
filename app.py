@@ -2028,7 +2028,7 @@ else:
 # =========================================================
 # 30. PROJECT ARCHITECTURE AND DEMONSTRATION NOTES
 # =========================================================
-
+'''
 st.markdown("---")
 st.subheader("30. Hydro-Trace System Architecture")
 
@@ -2077,7 +2077,7 @@ This is a  proof-of-concept prototype.
 - Actual hardware performance, energy consumption, and cooling efficiency
   would require validation using physical devices.
 """)
-
+'''
 st.markdown("---")
 
 st.markdown(
