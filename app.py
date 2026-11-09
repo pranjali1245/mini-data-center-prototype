@@ -1496,7 +1496,7 @@ if current_deployments:
 
         server_name = removed_app.get("server")
 
-        for node in st.session_state.nodes:
+ for node in st.session_state.nodes:
 
     # Skip invalid node entries
     if not isinstance(node, dict):
