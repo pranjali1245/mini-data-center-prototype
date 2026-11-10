@@ -95,13 +95,57 @@ h2 {
     padding: 14px 16px;
     box-shadow: 0 3px 10px rgba(30, 111, 217, 0.08);
 }
-[data-testid="stMetricLabel"] {
+[data-testid="stMetric"] {
+    padding: 10px 12px;
+    overflow: visible;
+}
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] p,
+[data-testid="stMetricLabel"] div {
     color: #4B6584;
     font-weight: 600;
+    font-size: 0.78rem !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.25;
 }
-[data-testid="stMetricValue"] {
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] div {
     color: #0B3D91;
     font-weight: 800;
+    font-size: 1.3rem !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.25;
+}
+[data-testid="stMetricDelta"],
+[data-testid="stMetricDelta"] div {
+    font-size: 0.75rem !important;
+    white-space: normal !important;
+}
+
+/* Smaller text for metrics nested inside cards (server monitoring) */
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMetricValue"],
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMetricValue"] div {
+    font-size: 1.05rem !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMetricLabel"],
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMetricLabel"] p {
+    font-size: 0.72rem !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMetric"] {
+    padding: 8px 10px;
+}
+
+/* Progress bar labels and general small text */
+[data-testid="stProgress"] p {
+    font-size: 0.8rem !important;
+    color: #4B6584;
+}
+[data-testid="stCaptionContainer"] {
+    font-size: 0.8rem;
 }
 
 /* ---------- Bordered containers (graph cards) ---------- */
@@ -1816,40 +1860,31 @@ else:
     st.write("No application submissions yet.")
 
 
-
-
 # =========================================================
-# PROTOTYPE ARCHITECTURE AND TECHNICAL SCOPE
+# 24. PROTOTYPE ARCHITECTURE AND LIMITATIONS
 # =========================================================
 
 st.divider()
-
-st.subheader("🏗️ Prototype Architecture & Technical Scope")
-
-st.markdown("""
-- **Central Dashboard:** Streamlit-based monitoring interface and Python workload scheduler.
-- **Virtual Server Nodes:** Two software-based Raspberry Pi representations (Node 1 and Node 2).
-- **Intelligent Workload Scheduling:** Selects an eligible server based on temperature, CPU and RAM availability.
-- **Application Management:** Assigns applications and updates resource utilization; releases resources when applications are removed.
-- **GPU Monitoring:** Virtual GPU usage estimation based on application requirements.
-- **Machine Learning:** Random Forest model trained on synthetic sample data to predict cooling requirements.
-- **ESP32 Communication:** MQTT-based telemetry and fan-command exchange.
-- **Temperature Monitoring:** Wokwi potentiometers simulate temperature inputs.
-- **Humidity Monitoring:** Wokwi DHT22 provides simulated humidity readings.
-- **Water Flow Analytics:** Virtual flow values are calculated from fan-speed data; no physical flow sensor is used.
-- **Cooling Response:** Wokwi LEDs represent fan commands; they do not produce actual airflow.
-""")
-
-st.subheader("⚙️ Prototype Limitations")
+st.subheader("🏗️ Prototype Architecture and Limitations")
 
 st.markdown("""
-- Raspberry Pi nodes are software simulations, not physical devices.
-- No actual Linux processes, Docker containers or Kubernetes cluster are running.
-- GPU utilization, power consumption and thermal efficiency are estimated or simulated.
-- No physical water flow or cooling performance is measured.
-- ESP32 sensors and LED responses are demonstrated through Wokwi simulation.
+- **Laptop/cloud app:** Central dashboard and Python scheduler.
+- **Virtual Node 1 and Node 2:** Simulated Raspberry Pi server records.
+- **Workload placement:** Python scheduler selects an eligible virtual node.
+- **Application assignment:** CPU, RAM, GPU and workload heat are updated.
+- **Application removal:** Selected application's resources are released.
+- **GPU monitoring:** Virtual GPU usage is estimated from application requirements.
+- **ML:** Random Forest trained on synthetic sample data predicts cooling class.
+- **ESP32:** Receives fan commands and publishes telemetry through MQTT.
+- **Temperature:** Wokwi potentiometers simulate temperature inputs.
+- **Humidity:** Wokwi DHT22 provides simulated humidity readings.
+- **Water flow:** ESP32 calculates a virtual 0–20 L/min value from average fan speed.
+- **Cooling:** Wokwi LEDs represent fan speed; they do not create physical airflow.
+- **Hardware limitation:** Virtual Raspberry Pi nodes do not execute real Linux
+  processes or Docker containers.
+- **Physical limitation:** No actual water flow, cooling, GPU or power measurement
+  is performed in this virtual prototype.
 """)
-
 
 
 # =========================================================
