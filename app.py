@@ -1407,6 +1407,8 @@ st.divider()
 st.subheader("📈 Live Temperature and Cooling Analytics")
 
 history = mqtt_snapshot.get("history", [])
+st.write("MQTT Snapshot:", mqtt_snapshot)
+st.write("History Count:", len(history))
 
 if history:
 
