@@ -1034,29 +1034,35 @@ if history:
 
         with st.container(border=True):
 
-            st.markdown("#### 💧 Water Flow Rate vs Time")
+            st.markdown("#### 💧 Main & Zone-wise Water Flow vs Time")
+
+            water_flow_columns = [
+                "Water Flow (L/min)",
+                "Zone 1 Water Flow (L/min)",
+                "Zone 2 Water Flow (L/min)"
+            ]
 
             if (
-                "Water Flow (L/min)" in history_df.columns
-                and history_df["Water Flow (L/min)"].notna().any()
+                all(col in history_df.columns for col in water_flow_columns)
+                and history_df[water_flow_columns].notna().any().any()
             ):
 
                 water_flow_df = history_df[
-                    ["Water Flow (L/min)"]
-                ].dropna()
+                    water_flow_columns
+                ].dropna(how="all")
 
                 st.line_chart(
                     water_flow_df,
                     y_label="Virtual Water Flow (L/min)",
                     x_label="Time",
-                    color=[BLUE],
+                    color=[BLUE_DARK, BLUE, BLUE_LIGHT],
                     height=280
                 )
 
             else:
 
                 st.info(
-                    "Waiting for calculated water-flow values from ESP32."
+                    "Waiting for calculated main and zone-wise water-flow values."
                 )
 
     with row2_right:
