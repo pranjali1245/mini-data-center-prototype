@@ -315,6 +315,32 @@ def start_mqtt_subscriber():
                 for x in [zone1_temp, zone2_temp]
             ):
                 raise ValueError("Invalid temperature reading.")
+            if water_flow is not None:
+
+                total_fan_speed = fan1_speed + fan2_speed
+
+                if total_fan_speed > 0:
+
+                    zone1_water_flow = round(
+                        water_flow * fan1_speed / total_fan_speed, 2
+                    )
+
+                    zone2_water_flow = round(
+                        water_flow - zone1_water_flow, 2
+                    )
+
+                else:
+
+                    zone1_water_flow = round(water_flow / 2, 2)
+                    zone2_water_flow = round(
+                        water_flow - zone1_water_flow, 2
+                    )
+
+            else:
+
+                zone1_water_flow = None
+                zone2_water_flow = None
+
 
             humidity = payload.get("humidity")
 
@@ -344,14 +370,18 @@ def start_mqtt_subscriber():
             ):
                 raise ValueError("Invalid fan speed.")
 
+           
             clean = {
                 "zone1_temp": zone1_temp,
                 "zone2_temp": zone2_temp,
                 "humidity": humidity,
                 "water_flow": water_flow,
+                "zone1_water_flow": zone1_water_flow,
+                "zone2_water_flow": zone2_water_flow,
                 "fan1_speed": fan1_speed,
                 "fan2_speed": fan2_speed
             }
+
 
             with state["lock"]:
 
@@ -367,6 +397,8 @@ def start_mqtt_subscriber():
                     "Fan 1 Speed": fan1_speed,
                     "Fan 2 Speed": fan2_speed,
                     "Water Flow (L/min)": water_flow
+                    "Zone 1 Water Flow (L/min)": zone1_water_flow,
+                    "Zone 2 Water Flow (L/min)": zone2_water_flow
                 })
 
                 if len(state["history"]) > 300:
@@ -878,22 +910,30 @@ if mqtt_snapshot["latest"]:
 
     water_flow = live.get("water_flow")
 
+
     m4.metric(
-        "Simulated Water Flow",
-        f"{water_flow:.2f} L/min"
+        "Main Water Supply",
+        f'{water_flow:.2f} L/min'
         if water_flow is not None
         else "Not available"
     )
 
     m5.metric(
-        "Fan 1 Command",
-        f'{live["fan1_speed"]}%'
+        "Zone 1 Water Flow",
+        f'{live["zone1_water_flow"]:.2f} L/min'
+        if live.get("zone1_water_flow") is not None
+        else "Not available"
     )
 
     m6.metric(
-        "Fan 2 Command",
-        f'{live["fan2_speed"]}%'
+        "Zone 2 Water Flow",
+        f'{live["zone2_water_flow"]:.2f} L/min'
+        if live.get("zone2_water_flow") is not None
+        else "Not available"
     )
+
+
+
 
     st.caption(
         f"Last ESP32 message received at {mqtt_snapshot['last_seen']}."
