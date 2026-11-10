@@ -1222,7 +1222,185 @@ st.caption(
 
 
 # =========================================================
-# 22. EVENT LOG
+# 22. COOLING PERFORMANCE ANALYTICS
+# =========================================================
+
+st.divider()
+st.subheader("8. Cooling Performance Analytics")
+
+
+def calculate_htes(temperature, fan_speed):
+
+    temperature_score = max(
+        0,
+        min(100, 100 - max(0, temperature - 25) * 2.5)
+    )
+
+    fan_effort_score = max(
+        75,
+        min(100, 100 - fan_speed * 0.25)
+    )
+
+    htes = (
+        temperature_score * 0.70
+        + fan_effort_score * 0.30
+    )
+
+    return round(htes, 1)
+
+
+htes_values = []
+
+cooling_cols = st.columns(2)
+
+for col, (name, node) in zip(cooling_cols, nodes.items()):
+
+    fan_speed = final_fan_commands[name]
+    temperature = node["temperature"]
+
+    htes = calculate_htes(
+        temperature,
+        fan_speed
+    )
+
+    htes_values.append(htes)
+
+    if htes >= 85:
+        status = "Excellent"
+
+    elif htes >= 70:
+        status = "Good"
+
+    elif htes >= 50:
+        status = "Moderate"
+
+    else:
+        status = "Needs Attention"
+
+    with col:
+
+        st.markdown(f"### {name}")
+
+        st.metric(
+            "Zone Temperature",
+            f"{temperature:.1f} °C"
+        )
+
+        st.metric(
+            "Cooling Fan Speed",
+            f"{fan_speed}%"
+        )
+
+        st.metric(
+            "Thermal Efficiency Score",
+            f"{htes}/100"
+        )
+
+        st.progress(
+            int(htes),
+            text=f"Cooling Status: {status}"
+        )
+
+
+overall_htes = round(
+    sum(htes_values) / len(htes_values),
+    1
+)
+
+st.metric(
+    "Overall Thermal Efficiency Score",
+    f"{overall_htes}/100"
+)
+
+st.caption(
+    "HTES is an illustrative virtual score based on "
+    "temperature and fan speed, not a measured physical efficiency."
+)
+
+
+# =========================================================
+# 23. VIRTUAL POWER ANALYTICS
+# =========================================================
+
+st.divider()
+st.subheader("9. Power Consumption Analytics")
+
+
+def calculate_virtual_power(node, fan_speed):
+
+    power = (
+        2.5
+        + (node["cpu"] * 0.035)
+        + (node["ram"] * 0.015)
+        + (fan_speed * 0.005)
+    )
+
+    return round(power, 2)
+
+
+power_rows = []
+
+total_power = 0.0
+
+for name, node in nodes.items():
+
+    fan_speed = final_fan_commands[name]
+
+    estimated_power = calculate_virtual_power(
+        node,
+        fan_speed
+    )
+
+    total_power += estimated_power
+
+    power_rows.append({
+
+        "Virtual Server": name,
+
+        "CPU Usage": f'{node["cpu"]:.0f}%',
+
+        "RAM Usage": f'{node["ram"]:.0f}%',
+
+        "Fan Speed": f"{fan_speed}%",
+
+        "Estimated Power": f"{estimated_power:.2f} W"
+
+    })
+
+
+st.dataframe(
+    pd.DataFrame(power_rows),
+    use_container_width=True,
+    hide_index=True
+)
+
+
+power_col1, power_col2, power_col3 = st.columns(3)
+
+power_col1.metric(
+    "Total Estimated Power",
+    f"{total_power:.2f} W"
+)
+
+power_col2.metric(
+    "Estimated Hourly Energy",
+    f"{total_power / 1000:.4f} kWh"
+)
+
+power_col3.metric(
+    "Estimated Daily Energy",
+    f"{(total_power * 24) / 1000:.3f} kWh"
+)
+
+
+st.caption(
+    "Power values are virtual estimates calculated using "
+    "CPU usage, RAM usage and fan speed. "
+    "They are not measured using a physical power sensor."
+)
+
+# =========================================================
+# 24. EVENT LOG
 # =========================================================
 
 st.divider()
