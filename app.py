@@ -953,40 +953,60 @@ if mqtt_snapshot["latest"]:
         else "Not available"
     )
 
-        with row2_left:
+        # =========================================================
+    # ZONE-WISE WATER DISTRIBUTION ANALYSIS
+    # =========================================================
 
-        with st.container(border=True):
+    with st.container(border=True):
 
-            st.markdown("#### 💧 Main & Zone-wise Water Flow vs Time")
+        st.markdown("### 💧 Zone-wise Water Distribution Analysis")
 
-            water_flow_columns = [
-                "Water Flow (L/min)",
-                "Zone 1 Water Flow (L/min)",
-                "Zone 2 Water Flow (L/min)"
-            ]
+        main_flow = live.get("water_flow")
+        zone1_flow = live.get("zone1_water_flow")
+        zone2_flow = live.get("zone2_water_flow")
 
-            if (
-                all(col in history_df.columns for col in water_flow_columns)
-                and history_df[water_flow_columns].notna().any().any()
-            ):
+        if (
+            main_flow is not None
+            and zone1_flow is not None
+            and zone2_flow is not None
+            and main_flow > 0
+        ):
 
-                water_flow_df = history_df[
-                    water_flow_columns
-                ].dropna(how="all")
+            zone1_percentage = (zone1_flow / main_flow) * 100
+            zone2_percentage = (zone2_flow / main_flow) * 100
 
-                st.line_chart(
-                    water_flow_df,
-                    y_label="Virtual Water Flow (L/min)",
-                    x_label="Time",
-                    color=[BLUE_DARK, BLUE, BLUE_LIGHT],
-                    height=280
-                )
+            total_zone_flow = zone1_flow + zone2_flow
+            flow_difference = abs(main_flow - total_zone_flow)
 
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("**Zone 1 Water Distribution**")
+                st.progress(min(zone1_percentage / 100, 1.0))
+                st.write(f"{zone1_percentage:.1f}% of Main Supply")
+
+            with col2:
+                st.markdown("**Zone 2 Water Distribution**")
+                st.progress(min(zone2_percentage / 100, 1.0))
+                st.write(f"{zone2_percentage:.1f}% of Main Supply")
+
+            st.divider()
+
+            st.metric(
+                "Total Zone-wise Water Flow",
+                f"{total_zone_flow:.2f} L/min"
+            )
+
+            if flow_difference <= 0.05:
+                st.success("Water distribution balance verified.")
             else:
+                st.warning("Water distribution balance needs checking.")
 
-                st.info(
-                    "Waiting for calculated main and zone-wise water-flow values."
-                )
+        else:
+
+            st.info("Waiting for valid water-flow data.")
+
+
 
 
 
