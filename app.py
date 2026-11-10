@@ -1077,129 +1077,99 @@ else:
     )
 
 # =========================================================
-# 22. PERFORMANCE GRAPHS
+# VIRTUAL POWER CONSUMPTION ANALYTICS
 # =========================================================
 
 st.divider()
-st.subheader("📊 Live Performance Analytics")
+st.subheader("⚡ Power Consumption Analytics")
 
-# Prepare graph data
-graph_data = pd.DataFrame({
-    "Server": list(nodes.keys()),
-    "Temperature (°C)": [
-        nodes[name]["temperature"] for name in nodes
-    ],
-    "CPU Usage (%)": [
-        nodes[name]["cpu"] for name in nodes
-    ],
-    "RAM Usage (%)": [
-        nodes[name]["ram"] for name in nodes
-    ],
-    "Fan Speed (%)": [
-        final_fan_commands[name] for name in nodes
-    ]
-}).set_index("Server")
+# Calculate estimated power for each virtual server
+def calculate_virtual_power(node, fan_speed):
 
-
-# First Row - Temperature and CPU
-graph_col1, graph_col2 = st.columns(2)
-
-with graph_col1:
-    st.markdown("#### 🌡️ Temperature Comparison")
-    st.bar_chart(
-        graph_data[["Temperature (°C)"]],
-        height=220,
-        y_label="Temperature (°C)"
+    power = (
+        2.5
+        + (node["cpu"] * 0.035)
+        + (node["ram"] * 0.015)
+        + (fan_speed * 0.005)
     )
 
-with graph_col2:
-    st.markdown("#### ⚙️ CPU Usage Comparison")
-    st.bar_chart(
-        graph_data[["CPU Usage (%)"]],
-        height=220,
-        y_label="CPU Usage (%)"
+    return round(power, 2)
+
+
+power_rows = []
+total_power = 0.0
+
+for name, node in nodes.items():
+
+    fan_speed = final_fan_commands[name]
+
+    estimated_power = calculate_virtual_power(
+        node,
+        fan_speed
     )
 
+    total_power += estimated_power
 
-# Second Row - RAM and Fan Speed
-graph_col3, graph_col4 = st.columns(2)
+    power_rows.append({
+        "Virtual Server": name,
+        "CPU Usage": f'{node["cpu"]:.0f}%',
+        "RAM Usage": f'{node["ram"]:.0f}%',
+        "Fan Speed": f"{fan_speed}%",
+        "Estimated Power (W)": f"{estimated_power:.2f} W"
+    })
 
-with graph_col3:
-    st.markdown("#### 💾 RAM Usage Comparison")
-    st.bar_chart(
-        graph_data[["RAM Usage (%)"]],
-        height=220,
-        y_label="RAM Usage (%)"
-    )
 
-with graph_col4:
-    st.markdown("#### ❄️ Cooling Fan Speed")
-    st.bar_chart(
-        graph_data[["Fan Speed (%)"]],
-        height=220,
-        y_label="Fan Speed (%)"
-    )
+# Display server-wise power consumption
+st.markdown("#### Server-wise Power Usage")
 
-st.caption(
-    "Live comparison of temperature, CPU, RAM and cooling fan speed "
-    "across both virtual servers."
+st.dataframe(
+    pd.DataFrame(power_rows),
+    use_container_width=True,
+    hide_index=True
 )
 
-# =========================================================
-# 13. VIRTUAL SERVER MONITORING
-# =========================================================
 
-st.subheader("1. Virtual Server Monitoring")
+# Display total power and energy
+st.markdown("#### Overall Energy Summary")
 
-cols = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
-for col, (name, data) in zip(cols, nodes.items()):
+col1.metric(
+    "Total Estimated Power",
+    f"{total_power:.2f} W"
+)
 
-    with col:
+col2.metric(
+    "Hourly Energy",
+    f"{total_power / 1000:.4f} kWh"
+)
 
-        status = "Online" if data["online"] else "Offline"
+col3.metric(
+    "Daily Energy",
+    f"{(total_power * 24) / 1000:.3f} kWh"
+)
 
-        st.metric(name, status)
 
-        m1, m2, m3 = st.columns(3)
+# Power consumption chart
+st.markdown("#### Power Usage by Server")
 
-        m1.metric(
-            "Temperature",
-            f'{data["temperature"]:.1f} °C'
-        )
+power_chart_df = pd.DataFrame(power_rows)
 
-        m2.metric(
-            "CPU Usage",
-            f'{data["cpu"]:.0f}%'
-        )
+power_chart_df["Power (W)"] = [
+    float(row["Estimated Power (W)"].replace(" W", ""))
+    for row in power_rows
+]
 
-        m3.metric(
-            "RAM Usage",
-            f'{data["ram"]:.0f}%'
-        )
+st.bar_chart(
+    power_chart_df.set_index("Virtual Server")[["Power (W)"]],
+    height=250
+)
 
-        st.metric(
-            "Workload Heat Load",
-            f'{data["heat_load"]:.2f}'
-        )
-
-        st.progress(
-            int(min(100, data["cpu"])),
-            text="CPU Utilization"
-        )
-
-        st.progress(
-            int(min(100, data["ram"])),
-            text="RAM Utilization"
-        )
-
-        st.write(
-            "Running Applications:",
-            ", ".join(
-                app["app"] for app in data["apps"]
-            ) if data["apps"] else "None"
-        )
-
+st.caption(
+    "Power consumption values are virtual estimates "
+    "calculated using CPU, RAM and fan speed. "
+    "They are not measured using physical power sensors."
+)
 
 # =========================================================
 # 14. APPLICATION SUBMISSION
