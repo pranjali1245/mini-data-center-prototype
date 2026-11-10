@@ -953,6 +953,41 @@ if mqtt_snapshot["latest"]:
         else "Not available"
     )
 
+        with row2_left:
+
+        with st.container(border=True):
+
+            st.markdown("#### 💧 Main & Zone-wise Water Flow vs Time")
+
+            water_flow_columns = [
+                "Water Flow (L/min)",
+                "Zone 1 Water Flow (L/min)",
+                "Zone 2 Water Flow (L/min)"
+            ]
+
+            if (
+                all(col in history_df.columns for col in water_flow_columns)
+                and history_df[water_flow_columns].notna().any().any()
+            ):
+
+                water_flow_df = history_df[
+                    water_flow_columns
+                ].dropna(how="all")
+
+                st.line_chart(
+                    water_flow_df,
+                    y_label="Virtual Water Flow (L/min)",
+                    x_label="Time",
+                    color=[BLUE_DARK, BLUE, BLUE_LIGHT],
+                    height=280
+                )
+
+            else:
+
+                st.info(
+                    "Waiting for calculated main and zone-wise water-flow values."
+                )
+
 
 
 
