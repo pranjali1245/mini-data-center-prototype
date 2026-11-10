@@ -1399,7 +1399,6 @@ st.caption(
     "They are not measured using a physical power sensor."
 )
 
-
 # =========================================================
 # 12. LIVE TEMPERATURE, FAN AND WATER FLOW GRAPHS
 # =========================================================
@@ -1419,124 +1418,126 @@ if history:
 
     history_df = history_df.set_index("Time")
 
-    # Create two columns
-    col1, col2 = st.columns(2)
-
     # -------------------------------------
-    # GRAPH 1: TEMPERATURE
+    # TEMPERATURE GRAPH
     # -------------------------------------
 
-    with col1:
+    st.markdown("### 🌡️ Temperature vs Time")
 
-        st.markdown("#### 🌡️ Temperature vs Time")
+    temperature_df = history_df[[
+        "Zone 1 Temperature",
+        "Zone 2 Temperature"
+    ]]
 
-        temperature_df = history_df[[
-            "Zone 1 Temperature",
-            "Zone 2 Temperature"
-        ]]
+    st.line_chart(
+        temperature_df,
+        y_label="Temperature (°C)",
+        x_label="Time",
+        height=300
+    )
+
+    # -------------------------------------
+    # FAN SPEED GRAPH
+    # -------------------------------------
+
+    st.markdown("### 🌀 Fan Speed vs Time")
+
+    fan_df = history_df[[
+        "Fan 1 Speed",
+        "Fan 2 Speed"
+    ]]
+
+    st.line_chart(
+        fan_df,
+        y_label="Fan Speed (%)",
+        x_label="Time",
+        height=300
+    )
+
+    # -------------------------------------
+    # WATER FLOW VS TIME
+    # -------------------------------------
+
+    st.markdown("### 💧 Water Flow Rate vs Time")
+
+    if (
+        "Water Flow (L/min)" in history_df.columns
+        and history_df["Water Flow (L/min)"].notna().any()
+    ):
+
+        water_flow_df = history_df[
+            ["Water Flow (L/min)"]
+        ].dropna()
 
         st.line_chart(
-            temperature_df,
-            y_label="Temperature (°C)",
-            height=230
+            water_flow_df,
+            y_label="Virtual Water Flow (L/min)",
+            x_label="Time",
+            height=300
+        )
+
+    else:
+
+        st.info(
+            "Waiting for calculated water-flow values "
+            "from ESP32 MQTT telemetry."
         )
 
     # -------------------------------------
-    # GRAPH 2: FAN SPEED
+    # WATER FLOW VS AVERAGE FAN SPEED
     # -------------------------------------
 
-    with col2:
+    st.markdown(
+        "### 💧🌀 Water Flow vs Average Fan Speed"
+    )
 
-        st.markdown("#### 🌀 Fan Speed vs Time")
-
-        fan_df = history_df[[
+    relationship_df = history_df[
+        [
+            "Water Flow (L/min)",
             "Fan 1 Speed",
             "Fan 2 Speed"
-        ]]
+        ]
+    ].dropna(
+        subset=["Water Flow (L/min)"]
+    ).copy()
 
-        st.line_chart(
-            fan_df,
-            y_label="Fan Speed (%)",
-            height=230
+    if not relationship_df.empty:
+
+        relationship_df["Average Fan Speed (%)"] = (
+            relationship_df["Fan 1 Speed"]
+            + relationship_df["Fan 2 Speed"]
+        ) / 2
+
+        st.scatter_chart(
+            relationship_df,
+            x="Average Fan Speed (%)",
+            y="Water Flow (L/min)",
+            x_label="Average Fan Speed (%)",
+            y_label="Virtual Water Flow (L/min)",
+            height=350
         )
 
-    # Second row
-    col3, col4 = st.columns(2)
+    else:
 
-    # -------------------------------------
-    # GRAPH 3: WATER FLOW
-    # -------------------------------------
-
-    with col3:
-
-        st.markdown("#### 💧 Water Flow vs Time")
-
-        if (
-            "Water Flow (L/min)" in history_df.columns
-            and history_df["Water Flow (L/min)"].notna().any()
-        ):
-
-            water_flow_df = history_df[
-                ["Water Flow (L/min)"]
-            ].dropna()
-
-            st.line_chart(
-                water_flow_df,
-                y_label="Virtual Flow (L/min)",
-                height=230
-            )
-
-        else:
-
-            st.info("Waiting for water-flow readings.")
-
-    # -------------------------------------
-    # GRAPH 4: WATER FLOW VS FAN SPEED
-    # -------------------------------------
-
-    with col4:
-
-        st.markdown("#### 💧🌀 Flow vs Average Fan Speed")
-
-        relationship_df = history_df[
-            [
-                "Water Flow (L/min)",
-                "Fan 1 Speed",
-                "Fan 2 Speed"
-            ]
-        ].dropna(
-            subset=["Water Flow (L/min)"]
-        ).copy()
-
-        if not relationship_df.empty:
-
-            relationship_df["Average Fan Speed (%)"] = (
-                relationship_df["Fan 1 Speed"]
-                + relationship_df["Fan 2 Speed"]
-            ) / 2
-
-            st.scatter_chart(
-                relationship_df,
-                x="Average Fan Speed (%)",
-                y="Water Flow (L/min)",
-                height=230
-            )
-
-        else:
-
-            st.info("Waiting for fan-speed and water-flow readings.")
+        st.info(
+            "Waiting for fan-speed and water-flow readings."
+        )
 
     st.caption(
-        "Graphs display ESP32 telemetry received through MQTT. "
-        "Water flow is simulated, not physically measured."
+        "All graphs display ESP32 telemetry received through MQTT. "
+        "The latest 300 readings are kept in memory; history resets "
+        "when the Streamlit app process restarts. "
+        "Water flow is a simulated value calculated from average fan speed, "
+        "not a physical water-flow measurement."
     )
 
 else:
 
     st.info(
         "Waiting for ESP32 telemetry. Start the Wokwi simulation "
-        "to display live analytics."
+        "to display live temperature, fan-speed and virtual water-flow graphs."
     )
+
 
 
 # =========================================================
