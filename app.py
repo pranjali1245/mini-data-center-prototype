@@ -17,14 +17,180 @@ from pathlib import Path
 
 st.set_page_config(
     page_title="Hydro-Trace | AI Water-Saving Engine",
-    page_icon="🖥️",
+    page_icon="💧",
     layout="wide"
 )
 
-st.title("🖥️ Hydro-Trace — AI Water-Saving Engine")
-st.caption(
-    "Virtual Data Center Prototype | "
-    "ESP32 + MQTT + ML Cooling + Smart Workload Scheduling"
+# ---------- Blue & White theme ----------
+BLUE_DARK = "#0B3D91"
+BLUE = "#1E6FD9"
+BLUE_LIGHT = "#60A5FA"
+BLUE_PALE = "#EAF3FF"
+
+st.markdown(
+    """
+<style>
+/* ---------- App background ---------- */
+.stApp {
+    background: linear-gradient(180deg, #F4F9FF 0%, #FFFFFF 40%);
+    color: #0F2A4A;
+}
+
+.block-container {
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+    max-width: 1300px;
+}
+
+/* ---------- Hero header ---------- */
+.hero {
+    background: linear-gradient(120deg, #0B3D91 0%, #1E6FD9 55%, #60A5FA 100%);
+    color: #FFFFFF;
+    padding: 28px 32px;
+    border-radius: 18px;
+    margin-bottom: 22px;
+    box-shadow: 0 10px 28px rgba(30, 111, 217, 0.28);
+}
+.hero h1 {
+    color: #FFFFFF !important;
+    margin: 0;
+    font-size: 2.1rem;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    padding: 0;
+}
+.hero p {
+    color: #DCEBFF;
+    margin: 6px 0 0 0;
+    font-size: 0.98rem;
+}
+.hero .pill {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #FFFFFF;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    margin: 10px 6px 0 0;
+}
+
+/* ---------- Headings ---------- */
+h2, h3 {
+    color: #0B3D91 !important;
+    font-weight: 700 !important;
+}
+h2 {
+    border-left: 6px solid #1E6FD9;
+    padding-left: 12px !important;
+    margin-top: 0.6rem !important;
+}
+
+/* ---------- Metric cards ---------- */
+[data-testid="stMetric"] {
+    background: #FFFFFF;
+    border: 1px solid #D6E6FB;
+    border-left: 5px solid #1E6FD9;
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 3px 10px rgba(30, 111, 217, 0.08);
+}
+[data-testid="stMetricLabel"] {
+    color: #4B6584;
+    font-weight: 600;
+}
+[data-testid="stMetricValue"] {
+    color: #0B3D91;
+    font-weight: 800;
+}
+
+/* ---------- Bordered containers (graph cards) ---------- */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: #FFFFFF;
+    border: 1px solid #D6E6FB !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 14px rgba(30, 111, 217, 0.08);
+}
+
+/* ---------- Buttons ---------- */
+.stButton > button {
+    border-radius: 10px;
+    border: 1px solid #1E6FD9;
+    color: #1E6FD9;
+    background: #FFFFFF;
+    font-weight: 600;
+    transition: all 0.15s ease-in-out;
+}
+.stButton > button:hover {
+    background: #EAF3FF;
+    border-color: #0B3D91;
+    color: #0B3D91;
+}
+.stButton > button[kind="primary"] {
+    background: linear-gradient(90deg, #1E6FD9, #3B8CF0);
+    color: #FFFFFF;
+    border: none;
+    box-shadow: 0 4px 12px rgba(30, 111, 217, 0.35);
+}
+.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(90deg, #0B3D91, #1E6FD9);
+    color: #FFFFFF;
+}
+
+/* ---------- Sidebar ---------- */
+[data-testid="stSidebar"] {
+    background: #EAF3FF;
+    border-right: 1px solid #C9DDF7;
+}
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: #0B3D91 !important;
+    border-left: none;
+    padding-left: 0 !important;
+}
+[data-testid="stSidebar"] [data-testid="stMetric"] {
+    border-left: 5px solid #60A5FA;
+}
+
+/* ---------- Progress bars ---------- */
+.stProgress > div > div > div > div {
+    background-color: #1E6FD9;
+}
+
+/* ---------- Dataframes ---------- */
+[data-testid="stDataFrame"] {
+    border: 1px solid #D6E6FB;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* ---------- Alerts ---------- */
+[data-testid="stAlert"] {
+    border-radius: 12px;
+}
+
+/* ---------- Divider ---------- */
+hr {
+    border-color: #D6E6FB !important;
+}
+</style>
+""",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+<div class="hero">
+    <h1>💧 Hydro-Trace — AI Water-Saving Engine</h1>
+    <p>Virtual Data Center Prototype</p>
+    <span class="pill">ESP32</span>
+    <span class="pill">MQTT</span>
+    <span class="pill">ML Cooling</span>
+    <span class="pill">Smart Workload Scheduling</span>
+</div>
+""",
+    unsafe_allow_html=True
 )
 
 
@@ -704,7 +870,7 @@ else:
 
 
 # =========================================================
-# 12. LIVE TEMPERATURE, FAN AND WATER FLOW GRAPHS
+# 12. LIVE ANALYTICS — 2 ROWS x 2 GRAPHS
 # =========================================================
 
 st.divider()
@@ -719,89 +885,111 @@ if history:
     history_df["Time"] = pd.to_datetime(history_df["Time"])
     history_df = history_df.set_index("Time")
 
-    st.markdown("### 🌡️ Temperature vs Time")
+    # ---------- ROW 1: Temperature | Fan Speed ----------
+    row1_left, row1_right = st.columns(2)
 
-    temperature_df = history_df[[
-        "Zone 1 Temperature",
-        "Zone 2 Temperature"
-    ]]
+    with row1_left:
 
-    st.line_chart(
-        temperature_df,
-        y_label="Temperature (°C)",
-        x_label="Time",
-        height=300
-    )
+        with st.container(border=True):
 
-    st.markdown("### 🌀 Fan Speed vs Time")
+            st.markdown("#### 🌡️ Temperature vs Time")
 
-    fan_df = history_df[[
-        "Fan 1 Speed",
-        "Fan 2 Speed"
-    ]]
+            st.line_chart(
+                history_df[[
+                    "Zone 1 Temperature",
+                    "Zone 2 Temperature"
+                ]],
+                y_label="Temperature (°C)",
+                x_label="Time",
+                color=[BLUE_DARK, BLUE_LIGHT],
+                height=280
+            )
 
-    st.line_chart(
-        fan_df,
-        y_label="Fan Speed (%)",
-        x_label="Time",
-        height=300
-    )
+    with row1_right:
 
-    st.markdown("### 💧 Water Flow Rate vs Time")
+        with st.container(border=True):
 
-    if (
-        "Water Flow (L/min)" in history_df.columns
-        and history_df["Water Flow (L/min)"].notna().any()
-    ):
+            st.markdown("#### 🌀 Fan Speed vs Time")
 
-        water_flow_df = history_df[
-            ["Water Flow (L/min)"]
-        ].dropna()
+            st.line_chart(
+                history_df[[
+                    "Fan 1 Speed",
+                    "Fan 2 Speed"
+                ]],
+                y_label="Fan Speed (%)",
+                x_label="Time",
+                color=[BLUE_DARK, BLUE_LIGHT],
+                height=280
+            )
 
-        st.line_chart(
-            water_flow_df,
-            y_label="Virtual Water Flow (L/min)",
-            x_label="Time",
-            height=300
-        )
+    # ---------- ROW 2: Water Flow | Water Flow vs Fan ----------
+    row2_left, row2_right = st.columns(2)
 
-    else:
+    with row2_left:
 
-        st.info(
-            "Waiting for calculated water-flow values from ESP32."
-        )
+        with st.container(border=True):
 
-    st.markdown("### 💧🌀 Water Flow vs Average Fan Speed")
+            st.markdown("#### 💧 Water Flow Rate vs Time")
 
-    relationship_df = history_df[
-        [
-            "Water Flow (L/min)",
-            "Fan 1 Speed",
-            "Fan 2 Speed"
-        ]
-    ].dropna(
-        subset=["Water Flow (L/min)"]
-    ).copy()
+            if (
+                "Water Flow (L/min)" in history_df.columns
+                and history_df["Water Flow (L/min)"].notna().any()
+            ):
 
-    if not relationship_df.empty:
+                water_flow_df = history_df[
+                    ["Water Flow (L/min)"]
+                ].dropna()
 
-        relationship_df["Average Fan Speed (%)"] = (
-            relationship_df["Fan 1 Speed"]
-            + relationship_df["Fan 2 Speed"]
-        ) / 2
+                st.line_chart(
+                    water_flow_df,
+                    y_label="Virtual Water Flow (L/min)",
+                    x_label="Time",
+                    color=[BLUE],
+                    height=280
+                )
 
-        st.scatter_chart(
-            relationship_df,
-            x="Average Fan Speed (%)",
-            y="Water Flow (L/min)",
-            x_label="Average Fan Speed (%)",
-            y_label="Virtual Water Flow (L/min)",
-            height=350
-        )
+            else:
 
-    else:
+                st.info(
+                    "Waiting for calculated water-flow values from ESP32."
+                )
 
-        st.info("Waiting for fan-speed and water-flow readings.")
+    with row2_right:
+
+        with st.container(border=True):
+
+            st.markdown("#### 💧🌀 Water Flow vs Average Fan Speed")
+
+            relationship_df = history_df[
+                [
+                    "Water Flow (L/min)",
+                    "Fan 1 Speed",
+                    "Fan 2 Speed"
+                ]
+            ].dropna(
+                subset=["Water Flow (L/min)"]
+            ).copy()
+
+            if not relationship_df.empty:
+
+                relationship_df["Average Fan Speed (%)"] = (
+                    relationship_df["Fan 1 Speed"]
+                    + relationship_df["Fan 2 Speed"]
+                ) / 2
+
+                st.scatter_chart(
+                    relationship_df,
+                    x="Average Fan Speed (%)",
+                    y="Water Flow (L/min)",
+                    x_label="Average Fan Speed (%)",
+                    y_label="Virtual Water Flow (L/min)",
+                    color=BLUE,
+                    height=280
+                )
+
+            else:
+
+                st.info("Waiting for fan-speed and water-flow readings.")
 
     st.caption(
         "Graphs display ESP32 telemetry received through MQTT. "
@@ -936,58 +1124,60 @@ for col, (name, data) in zip(cols, nodes.items()):
 
     with col:
 
-        status = "Online" if data["online"] else "Offline"
+        with st.container(border=True):
 
-        st.metric(name, status)
+            status = "Online" if data["online"] else "Offline"
 
-        m1, m2, m3, m4 = st.columns(4)
+            st.metric(name, status)
 
-        m1.metric(
-            "Temperature",
-            f'{data["temperature"]:.1f} °C'
-        )
+            m1, m2, m3, m4 = st.columns(4)
 
-        m2.metric(
-            "CPU Usage",
-            f'{data["cpu"]:.0f}%'
-        )
+            m1.metric(
+                "Temperature",
+                f'{data["temperature"]:.1f} °C'
+            )
 
-        m3.metric(
-            "RAM Usage",
-            f'{data["ram"]:.0f}%'
-        )
+            m2.metric(
+                "CPU Usage",
+                f'{data["cpu"]:.0f}%'
+            )
 
-        m4.metric(
-            "GPU Usage",
-            f'{data["gpu"]:.0f}%'
-        )
+            m3.metric(
+                "RAM Usage",
+                f'{data["ram"]:.0f}%'
+            )
 
-        st.metric(
-            "Workload Heat Load",
-            f'{data["heat_load"]:.2f}'
-        )
+            m4.metric(
+                "GPU Usage",
+                f'{data["gpu"]:.0f}%'
+            )
 
-        st.progress(
-            int(min(100, max(0, data["cpu"]))),
-            text="CPU Utilization"
-        )
+            st.metric(
+                "Workload Heat Load",
+                f'{data["heat_load"]:.2f}'
+            )
 
-        st.progress(
-            int(min(100, max(0, data["ram"]))),
-            text="RAM Utilization"
-        )
+            st.progress(
+                int(min(100, max(0, data["cpu"]))),
+                text="CPU Utilization"
+            )
 
-        st.progress(
-            int(min(100, max(0, data["gpu"]))),
-            text="GPU Utilization"
-        )
+            st.progress(
+                int(min(100, max(0, data["ram"]))),
+                text="RAM Utilization"
+            )
 
-        st.write(
-            "Running Applications:",
-            ", ".join(
-                app["app"] for app in data["apps"]
-            ) if data["apps"] else "None"
-        )
+            st.progress(
+                int(min(100, max(0, data["gpu"]))),
+                text="GPU Utilization"
+            )
+
+            st.write(
+                "Running Applications:",
+                ", ".join(
+                    app["app"] for app in data["apps"]
+                ) if data["apps"] else "None"
+            )
 
 
 # =========================================================
@@ -1420,38 +1610,40 @@ for col, (name, node) in zip(fan_cols, nodes.items()):
 
     with col:
 
-        st.write(f"**{name} — Virtual Fan**")
+        with st.container(border=True):
 
-        st.progress(
-            fan,
-            text=f"Simulated Fan Command: {fan}% ({prediction})"
-        )
+            st.write(f"**{name} — Virtual Fan**")
 
-        if st.button(
-            f"Apply Simulated Cooling to {name}",
-            key=f"cool_{name}"
-        ):
+            st.progress(
+                fan,
+                text=f"Simulated Fan Command: {fan}% ({prediction})"
+            )
 
-            if live_mode and mqtt_snapshot["latest"]:
+            if st.button(
+                f"Apply Simulated Cooling to {name}",
+                key=f"cool_{name}"
+            ):
 
-                st.warning(
-                    "Live temperature is controlled by ESP32 telemetry. "
-                    "Use fan control to change the live fan command."
-                )
+                if live_mode and mqtt_snapshot["latest"]:
 
-            else:
+                    st.warning(
+                        "Live temperature is controlled by ESP32 telemetry. "
+                        "Use fan control to change the live fan command."
+                    )
 
-                node["temperature"] = max(
-                    22.0,
-                    node["temperature"] - fan * 0.035
-                )
+                else:
 
-                st.session_state.logs.insert(
-                    0,
-                    f"SIMULATED COOLING: {name}, fan {fan}%"
-                )
+                    node["temperature"] = max(
+                        22.0,
+                        node["temperature"] - fan * 0.035
+                    )
 
-                st.rerun()
+                    st.session_state.logs.insert(
+                        0,
+                        f"SIMULATED COOLING: {name}, fan {fan}%"
+                    )
+
+                    st.rerun()
 
 
 # =========================================================
