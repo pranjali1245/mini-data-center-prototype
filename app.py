@@ -287,6 +287,7 @@ def start_mqtt_subscriber():
                     f"MQTT disconnected (code {rc}); reconnecting..."
                 )
 
+   
     def on_message(client, userdata, msg):
 
         try:
@@ -307,6 +308,8 @@ def start_mqtt_subscriber():
                     "MQTT message is missing required fields."
                 )
 
+            # ---------- 1. Temperature Validation ----------
+
             zone1_temp = float(payload["zone1_temp"])
             zone2_temp = float(payload["zone2_temp"])
 
@@ -315,6 +318,46 @@ def start_mqtt_subscriber():
                 for x in [zone1_temp, zone2_temp]
             ):
                 raise ValueError("Invalid temperature reading.")
+
+            # ---------- 2. Humidity Validation ----------
+
+            humidity = payload.get("humidity")
+
+            if humidity is not None:
+                humidity = float(humidity)
+
+                if (
+                    not math.isfinite(humidity)
+                    or not 0 <= humidity <= 100
+                ):
+                    raise ValueError("Invalid humidity reading.")
+
+            # ---------- 3. Water Flow Validation ----------
+
+            water_flow = payload.get("water_flow")
+
+            if water_flow is not None:
+                water_flow = float(water_flow)
+
+                if (
+                    not math.isfinite(water_flow)
+                    or not 0 <= water_flow <= 20
+                ):
+                    raise ValueError("Invalid water-flow reading.")
+
+            # ---------- 4. Fan Speed Validation ----------
+
+            fan1_speed = int(payload["fan1_speed"])
+            fan2_speed = int(payload["fan2_speed"])
+
+            if not (
+                0 <= fan1_speed <= 100
+                and 0 <= fan2_speed <= 100
+            ):
+                raise ValueError("Invalid fan speed.")
+
+            # ---------- 5. Virtual Zone-wise Water Flow ----------
+
             if water_flow is not None:
 
                 total_fan_speed = fan1_speed + fan2_speed
@@ -332,6 +375,7 @@ def start_mqtt_subscriber():
                 else:
 
                     zone1_water_flow = round(water_flow / 2, 2)
+
                     zone2_water_flow = round(
                         water_flow - zone1_water_flow, 2
                     )
@@ -341,36 +385,8 @@ def start_mqtt_subscriber():
                 zone1_water_flow = None
                 zone2_water_flow = None
 
+            # ---------- 6. Clean MQTT Data ----------
 
-            humidity = payload.get("humidity")
-
-            if humidity is not None:
-                humidity = float(humidity)
-
-                if not math.isfinite(humidity) or not 0 <= humidity <= 100:
-                    raise ValueError("Invalid humidity reading.")
-
-            water_flow = payload.get("water_flow")
-
-            if water_flow is not None:
-                water_flow = float(water_flow)
-
-                if (
-                    not math.isfinite(water_flow)
-                    or not 0 <= water_flow <= 20
-                ):
-                    raise ValueError("Invalid water-flow reading.")
-
-            fan1_speed = int(payload["fan1_speed"])
-            fan2_speed = int(payload["fan2_speed"])
-
-            if not (
-                0 <= fan1_speed <= 100
-                and 0 <= fan2_speed <= 100
-            ):
-                raise ValueError("Invalid fan speed.")
-
-           
             clean = {
                 "zone1_temp": zone1_temp,
                 "zone2_temp": zone2_temp,
@@ -382,15 +398,18 @@ def start_mqtt_subscriber():
                 "fan2_speed": fan2_speed
             }
 
+            # ---------- 7. Update Live Data and History ----------
 
             with state["lock"]:
 
                 state["latest"] = clean
 
                 now = datetime.now()
+
                 state["last_seen"] = now.strftime("%H:%M:%S")
 
                 state["history"].append({
+
                     "Time": now,
                     "Zone 1 Temperature": zone1_temp,
                     "Zone 2 Temperature": zone2_temp,
@@ -399,6 +418,7 @@ def start_mqtt_subscriber():
                     "Water Flow (L/min)": water_flow,
                     "Zone 1 Water Flow (L/min)": zone1_water_flow,
                     "Zone 2 Water Flow (L/min)": zone2_water_flow
+
                 })
 
                 if len(state["history"]) > 300:
@@ -410,6 +430,7 @@ def start_mqtt_subscriber():
 
             with state["lock"]:
                 state["error"] = str(exc)
+
 
     client = mqtt.Client(
         callback_api_version=mqtt.CallbackAPIVersion.VERSION1,
