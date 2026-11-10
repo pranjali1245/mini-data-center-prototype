@@ -1077,6 +1077,75 @@ else:
     )
 
 # =========================================================
+# 22. PERFORMANCE GRAPHS
+# =========================================================
+
+st.divider()
+st.subheader("📊 Live Performance Analytics")
+
+# Prepare graph data
+graph_data = pd.DataFrame({
+    "Server": list(nodes.keys()),
+    "Temperature (°C)": [
+        nodes[name]["temperature"] for name in nodes
+    ],
+    "CPU Usage (%)": [
+        nodes[name]["cpu"] for name in nodes
+    ],
+    "RAM Usage (%)": [
+        nodes[name]["ram"] for name in nodes
+    ],
+    "Fan Speed (%)": [
+        final_fan_commands[name] for name in nodes
+    ]
+}).set_index("Server")
+
+
+# First Row - Temperature and CPU
+graph_col1, graph_col2 = st.columns(2)
+
+with graph_col1:
+    st.markdown("#### 🌡️ Temperature Comparison")
+    st.bar_chart(
+        graph_data[["Temperature (°C)"]],
+        height=220,
+        y_label="Temperature (°C)"
+    )
+
+with graph_col2:
+    st.markdown("#### ⚙️ CPU Usage Comparison")
+    st.bar_chart(
+        graph_data[["CPU Usage (%)"]],
+        height=220,
+        y_label="CPU Usage (%)"
+    )
+
+
+# Second Row - RAM and Fan Speed
+graph_col3, graph_col4 = st.columns(2)
+
+with graph_col3:
+    st.markdown("#### 💾 RAM Usage Comparison")
+    st.bar_chart(
+        graph_data[["RAM Usage (%)"]],
+        height=220,
+        y_label="RAM Usage (%)"
+    )
+
+with graph_col4:
+    st.markdown("#### ❄️ Cooling Fan Speed")
+    st.bar_chart(
+        graph_data[["Fan Speed (%)"]],
+        height=220,
+        y_label="Fan Speed (%)"
+    )
+
+st.caption(
+    "Live comparison of temperature, CPU, RAM and cooling fan speed "
+    "across both virtual servers."
+)
+
+# =========================================================
 # 13. VIRTUAL SERVER MONITORING
 # =========================================================
 
