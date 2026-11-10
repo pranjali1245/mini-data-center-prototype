@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import json
@@ -51,7 +52,6 @@ def start_mqtt_subscriber():
         "latest": None,
         "last_seen": None,
         "error": None,
-        "history": [],
         "lock": threading.Lock()
     }
 
@@ -107,7 +107,7 @@ def start_mqtt_subscriber():
             ):
                 raise ValueError("Invalid temperature reading.")
 
-            # Humidity
+            # Humidity - optional for older ESP32 messages
             humidity = payload.get("humidity")
 
             if humidity is not None:
@@ -118,7 +118,7 @@ def start_mqtt_subscriber():
                         "Humidity must be between 0 and 100%."
                     )
 
-            # Water flow
+            # Water flow - optional for backward compatibility
             water_flow = payload.get("water_flow")
 
             if water_flow is not None:
@@ -140,9 +140,7 @@ def start_mqtt_subscriber():
                 0 <= fan1_speed <= 100
                 and 0 <= fan2_speed <= 100
             ):
-                raise ValueError(
-                    "Fan speed must be between 0 and 100."
-                )
+                raise ValueError("Fan speed must be between 0 and 100.")
 
             clean = {
                 "zone1_temp": zone1_temp,
@@ -157,22 +155,9 @@ def start_mqtt_subscriber():
 
                 state["latest"] = clean
 
-                now = datetime.now()
-                state["last_seen"] = now.strftime("%H:%M:%S")
-
-                # Save telemetry for live graphs.
-                # Water flow is included in history.
-                state["history"].append({
-                    "Time": now,
-                    "Zone 1 Temperature": zone1_temp,
-                    "Zone 2 Temperature": zone2_temp,
-                    "Fan 1 Speed": fan1_speed,
-                    "Fan 2 Speed": fan2_speed,
-                    "Water Flow (L/min)": water_flow
-                })
-
-                if len(state["history"]) > 300:
-                    state["history"] = state["history"][-300:]
+                state["last_seen"] = (
+                    datetime.now().strftime("%H:%M:%S")
+                )
 
                 state["error"] = None
 
@@ -234,8 +219,7 @@ def get_mqtt_snapshot():
                 else None
             ),
             "last_seen": mqtt_state["last_seen"],
-            "error": mqtt_state["error"],
-            "history": list(mqtt_state["history"])
+            "error": mqtt_state["error"]
         }
 
 
@@ -346,29 +330,25 @@ DEFAULT_NODES = {
 
 
 # =========================================================
-# 7. SHARED DEMO STATE
+# 7. SESSION STATE INITIALIZATION
 # =========================================================
 
-@st.cache_resource
-def get_shared_demo_state():
+if "nodes" not in st.session_state:
 
-    return {
-        "nodes": {
-            name: {**data, "apps": []}
-            for name, data in DEFAULT_NODES.items()
-        },
-        "deployments": [],
-        "logs": [],
-        "last_decision": None
+    st.session_state.nodes = {
+        name: {**data, "apps": []}
+        for name, data in DEFAULT_NODES.items()
     }
 
 
-shared_demo_state = get_shared_demo_state()
+if "deployments" not in st.session_state:
+    st.session_state.deployments = []
 
-st.session_state.nodes = shared_demo_state["nodes"]
-st.session_state.deployments = shared_demo_state["deployments"]
-st.session_state.logs = shared_demo_state["logs"]
-st.session_state.last_decision = shared_demo_state["last_decision"]
+if "logs" not in st.session_state:
+    st.session_state.logs = []
+
+if "last_decision" not in st.session_state:
+    st.session_state.last_decision = None
 
 
 # Recover missing fields from older sessions
@@ -422,7 +402,6 @@ for name, node in st.session_state.nodes.items():
         all_deployments.append(app)
 
 st.session_state.deployments = all_deployments
-shared_demo_state["deployments"] = st.session_state.deployments
 
 
 def recalculate_server_resources():
@@ -467,11 +446,11 @@ if live_mode:
         interval=2000,
         key="mqtt_dashboard_refresh"
     )
-    st.sidebar.caption(
-    "Temperature and humidity arrive through Wokwi MQTT. "
-    "Virtual water flow is calculated by ESP32 using fan speed."
-    )
 
+    st.sidebar.caption(
+        "Temperature, humidity and water-flow readings "
+        "arrive through Wokwi MQTT."
+    )
 
 else:
 
@@ -565,11 +544,6 @@ if st.sidebar.button("↺ Reset demonstration"):
     st.session_state.logs = []
     st.session_state.last_decision = None
 
-    shared_demo_state["nodes"] = st.session_state.nodes
-    shared_demo_state["deployments"] = st.session_state.deployments
-    shared_demo_state["logs"] = st.session_state.logs
-    shared_demo_state["last_decision"] = st.session_state.last_decision
-
     st.rerun()
 
 
@@ -578,12 +552,11 @@ if st.sidebar.button("↺ Reset demonstration"):
 # =========================================================
 
 st.info(
-    "Workload assignments are kept in shared in-memory state, "
-    "so they survive browser refreshes while this Streamlit app "
-    "process remains running. ESP32 telemetry is received through MQTT. "
-    "Temperature and humidity are simulated/read through Wokwi components. "
-    "Water flow is calculated virtually by ESP32 from average fan speed. "
-    "Raspberry Pi nodes, CPU/RAM values and cooling model remain virtual simulations."
+    "ESP32 telemetry is received through MQTT. "
+    "Temperature and humidity are simulated/read through Wokwi "
+    "components. Water flow is simulated using a potentiometer. "
+    "Raspberry Pi nodes, CPU/RAM values and cooling model "
+    "remain virtual simulations."
 )
 
 
@@ -663,13 +636,11 @@ if mqtt_snapshot["latest"]:
         f"Last ESP32 message received at "
         f"{mqtt_snapshot['last_seen']}."
     )
-    st.caption(
-    "Virtual water flow is automatically calculated by ESP32 "
-    "from average fan speed (0–100%), with a simulated range "
-    "of 0–20 L/min. It is not a physical water-flow measurement."
-    )
 
-  
+    st.caption(
+        "Water flow is a virtual 0–20 L/min value generated "
+        "from the Wokwi potentiometer, not a physical flow measurement."
+    )
 
 else:
 
@@ -678,259 +649,9 @@ else:
         "Check Wokwi MQTT connection and topic."
     )
 
-# =========================================================
-# 12. LIVE TEMPERATURE, FAN AND WATER FLOW GRAPHS
-# =========================================================
-
-st.divider()
-st.subheader("📈 Live Temperature and Cooling Analytics")
-
-history = mqtt_snapshot.get("history", [])
-
-if history:
-
-    history_df = pd.DataFrame(history)
-
-    history_df["Time"] = pd.to_datetime(
-        history_df["Time"]
-    )
-
-    history_df = history_df.set_index("Time")
-
-    # -------------------------------------
-    # TEMPERATURE GRAPH
-    # -------------------------------------
-
-    st.markdown("### 🌡️ Temperature vs Time")
-
-    temperature_df = history_df[[
-        "Zone 1 Temperature",
-        "Zone 2 Temperature"
-    ]]
-
-    st.line_chart(
-        temperature_df,
-        y_label="Temperature (°C)",
-        x_label="Time",
-        height=300
-    )
-
-    # -------------------------------------
-    # FAN SPEED GRAPH
-    # -------------------------------------
-
-    st.markdown("### 🌀 Fan Speed vs Time")
-
-    fan_df = history_df[[
-        "Fan 1 Speed",
-        "Fan 2 Speed"
-    ]]
-
-    st.line_chart(
-        fan_df,
-        y_label="Fan Speed (%)",
-        x_label="Time",
-        height=300
-    )
-
-    # -------------------------------------
-    # WATER FLOW VS TIME
-    # -------------------------------------
-
-    st.markdown("### 💧 Water Flow Rate vs Time")
-
-    if (
-        "Water Flow (L/min)" in history_df.columns
-        and history_df["Water Flow (L/min)"].notna().any()
-    ):
-
-        water_flow_df = history_df[
-            ["Water Flow (L/min)"]
-        ].dropna()
-
-        st.line_chart(
-            water_flow_df,
-            y_label="Virtual Water Flow (L/min)",
-            x_label="Time",
-            height=300
-        )
-
-    else:
-
-        st.info(
-            "Waiting for calculated water-flow values "
-            "from ESP32 MQTT telemetry."
-        )
-
-    # -------------------------------------
-    # WATER FLOW VS AVERAGE FAN SPEED
-    # -------------------------------------
-
-    st.markdown(
-        "### 💧🌀 Water Flow vs Average Fan Speed"
-    )
-
-    relationship_df = history_df[
-        [
-            "Water Flow (L/min)",
-            "Fan 1 Speed",
-            "Fan 2 Speed"
-        ]
-    ].dropna(
-        subset=["Water Flow (L/min)"]
-    ).copy()
-
-    if not relationship_df.empty:
-
-        relationship_df["Average Fan Speed (%)"] = (
-            relationship_df["Fan 1 Speed"]
-            + relationship_df["Fan 2 Speed"]
-        ) / 2
-
-        st.scatter_chart(
-            relationship_df,
-            x="Average Fan Speed (%)",
-            y="Water Flow (L/min)",
-            x_label="Average Fan Speed (%)",
-            y_label="Virtual Water Flow (L/min)",
-            height=350
-        )
-
-    else:
-
-        st.info(
-            "Waiting for fan-speed and water-flow readings."
-        )
-
-    st.caption(
-        "All graphs display ESP32 telemetry received through MQTT. "
-        "The latest 300 readings are kept in memory; history resets "
-        "when the Streamlit app process restarts. "
-        "Water flow is a simulated value calculated from average fan speed, "
-        "not a physical water-flow measurement."
-    )
-
-else:
-
-    st.info(
-        "Waiting for ESP32 telemetry. Start the Wokwi simulation "
-        "to display live temperature, fan-speed and virtual water-flow graphs."
-    )
 
 # =========================================================
-# COOLING PERFORMANCE ANALYTICS
-# =========================================================
-
-st.markdown("---")
-st.subheader("❄️ Cooling Performance Analytics")
-
-analytics_history = mqtt_snapshot.get("history", [])
-
-if analytics_history:
-
-    analytics_df = pd.DataFrame(analytics_history)
-
-    latest = analytics_df.iloc[-1]
-
-    # Current readings
-    temp1 = float(latest.get("Zone 1 Temperature", 20))
-    temp2 = float(latest.get("Zone 2 Temperature", 20))
-
-    fan1 = float(latest.get("Fan 1 Speed", 0))
-    fan2 = float(latest.get("Fan 2 Speed", 0))
-
-    water_flow = float(latest.get("Water Flow (L/min)", 0))
-
-    avg_fan_speed = (fan1 + fan2) / 2
-    avg_temperature = (temp1 + temp2) / 2
-    max_temperature = max(temp1, temp2)
-
-    # Temperature trend from previous reading
-    if len(analytics_df) >= 2:
-        previous = analytics_df.iloc[-2]
-
-        previous_avg_temp = (
-            float(previous.get("Zone 1 Temperature", temp1)) +
-            float(previous.get("Zone 2 Temperature", temp2))
-        ) / 2
-
-        temperature_change = avg_temperature - previous_avg_temp
-    else:
-        temperature_change = 0.0
-
-    # Demo cooling status
-    if max_temperature < 40:
-        cooling_status = "Normal"
-    elif max_temperature < 48:
-        cooling_status = "Monitor"
-    else:
-        cooling_status = "High Temperature"
-
-    # KPI Cards
-    c1, c2, c3, c4 = st.columns(4)
-
-    c1.metric(
-        "Average Temperature",
-        f"{avg_temperature:.1f} °C",
-        f"{temperature_change:+.2f} °C"
-    )
-
-    c2.metric(
-        "Average Fan Speed",
-        f"{avg_fan_speed:.0f}%"
-    )
-
-    c3.metric(
-        "Virtual Water Flow",
-        f"{water_flow:.2f} L/min"
-    )
-
-    c4.metric(
-        "Cooling Status",
-        cooling_status
-    )
-
-    st.markdown("### Zone-wise Cooling Response")
-
-    zone1_status = (
-        "Normal" if temp1 < 40
-        else "Monitor" if temp1 < 48
-        else "High Temperature"
-    )
-
-    zone2_status = (
-        "Normal" if temp2 < 40
-        else "Monitor" if temp2 < 48
-        else "High Temperature"
-    )
-
-    zone_data = pd.DataFrame({
-        "Zone": ["Zone 1", "Zone 2"],
-        "Temperature (°C)": [temp1, temp2],
-        "Fan Speed (%)": [fan1, fan2],
-        "Cooling Status": [zone1_status, zone2_status]
-    })
-
-    st.dataframe(
-        zone_data,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    st.caption(
-        "Temperature change shows the difference from the previous "
-        "telemetry reading. Water flow is simulated from average fan speed. "
-        "Cooling status uses demo thresholds, not real hardware safety limits."
-    )
-
-else:
-    st.info(
-        "Waiting for ESP32 telemetry. Cooling analytics will appear "
-        "when live readings are received."
-    )
-
-# =========================================================
-# 13. VIRTUAL SERVER MONITORING
+# 12. VIRTUAL SERVER MONITORING
 # =========================================================
 
 st.subheader("1. Virtual Server Monitoring")
@@ -986,7 +707,7 @@ for col, (name, data) in zip(cols, nodes.items()):
 
 
 # =========================================================
-# 14. APPLICATION SUBMISSION
+# 13. APPLICATION SUBMISSION
 # =========================================================
 
 st.divider()
@@ -1026,7 +747,7 @@ with right:
 
 
 # =========================================================
-# 15. AUTOMATIC WORKLOAD SCHEDULER
+# 14. AUTOMATIC WORKLOAD SCHEDULER
 # =========================================================
 
 def choose_node(app_req):
@@ -1076,7 +797,7 @@ def choose_node(app_req):
 
 
 # =========================================================
-# 16. ASSIGN APPLICATION
+# 15. ASSIGN APPLICATION
 # =========================================================
 
 if st.button(
@@ -1094,10 +815,6 @@ if st.button(
             "node": None,
             "reason": "No suitable server available"
         }
-
-        shared_demo_state["last_decision"] = (
-            st.session_state.last_decision
-        )
 
         st.session_state.logs.insert(
             0,
@@ -1137,10 +854,6 @@ if st.button(
             )
         }
 
-        shared_demo_state["last_decision"] = (
-            st.session_state.last_decision
-        )
-
         st.session_state.logs.insert(
             0,
             f"DEPLOYED: {selected_app} -> {chosen}"
@@ -1150,7 +863,7 @@ if st.button(
 
 
 # =========================================================
-# 17. LAST DEPLOYMENT DECISION
+# 16. LAST DEPLOYMENT DECISION
 # =========================================================
 
 if st.session_state.last_decision:
@@ -1179,7 +892,7 @@ if st.session_state.last_decision:
 
 
 # =========================================================
-# 18. RUNNING APPLICATIONS
+# 17. RUNNING APPLICATIONS
 # =========================================================
 
 st.divider()
@@ -1214,7 +927,7 @@ else:
 
 
 # =========================================================
-# 19. REMOVE APPLICATION
+# 18. REMOVE APPLICATION
 # =========================================================
 
 st.divider()
@@ -1264,10 +977,6 @@ if st.session_state.deployments:
                 if d["id"] != deployment_id
             ]
 
-            shared_demo_state["deployments"] = (
-                st.session_state.deployments
-            )
-
             st.session_state.logs.insert(
                 0,
                 f'REMOVED: {deployment_to_remove["app"]} '
@@ -1282,10 +991,6 @@ if st.session_state.deployments:
                 "reason": "Application resources released successfully"
             }
 
-            shared_demo_state["last_decision"] = (
-                st.session_state.last_decision
-            )
-
             st.rerun()
 
 else:
@@ -1294,7 +999,7 @@ else:
 
 
 # =========================================================
-# 20. ML-BASED COOLING PREDICTION
+# 19. ML-BASED COOLING PREDICTION
 # =========================================================
 
 st.divider()
@@ -1344,7 +1049,7 @@ st.caption(
 
 
 # =========================================================
-# 21. VIRTUAL COOLING RESPONSE
+# 20. VIRTUAL COOLING RESPONSE
 # =========================================================
 
 st.divider()
@@ -1447,8 +1152,12 @@ for col, (name, node) in zip(fan_cols, nodes.items()):
 
 
 # =========================================================
-# 22. SINGLE MQTT COMMAND PUBLISH BLOCK
+# 21. SINGLE MQTT COMMAND PUBLISH BLOCK
 # =========================================================
+
+# Only this section publishes fan commands.
+# Manual mode sends slider values.
+# Automatic mode sends ML predicted values.
 
 final_payload = {
 
@@ -1513,7 +1222,7 @@ st.caption(
 
 
 # =========================================================
-# 23. EVENT LOG
+# 22. EVENT LOG
 # =========================================================
 
 st.divider()
@@ -1530,7 +1239,7 @@ else:
 
 
 # =========================================================
-# 24. PROTOTYPE ARCHITECTURE AND LIMITATIONS
+# 23. PROTOTYPE ARCHITECTURE AND LIMITATIONS
 # =========================================================
 
 st.divider()
@@ -1546,7 +1255,7 @@ st.markdown("""
 - **ESP32:** Receives fan commands and publishes telemetry through MQTT.
 - **Temperature:** Wokwi potentiometers simulate temperature inputs.
 - **Humidity:** Wokwi DHT22 provides simulated humidity readings.
-- **Water flow:** ESP32 calculates a virtual 0–20 L/min value from average fan speed. It is not measured by a physical flow sensor.
+- **Water flow:** Wokwi potentiometer on GPIO 32 simulates a 0–20 L/min value.
 - **Cooling:** Wokwi LEDs represent fan speed; they do not create physical airflow.
 - **Hardware limitation:** Virtual Raspberry Pi nodes do not execute real Linux
   processes or Docker containers.
