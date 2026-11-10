@@ -1399,74 +1399,145 @@ st.caption(
     "They are not measured using a physical power sensor."
 )
 
+
 # =========================================================
-# 22. PERFORMANCE GRAPHS
+# 12. LIVE TEMPERATURE, FAN AND WATER FLOW GRAPHS
 # =========================================================
 
 st.divider()
-st.subheader("📊 Live Performance Analytics")
+st.subheader("📈 Live Temperature and Cooling Analytics")
 
-# Prepare graph data
-graph_data = pd.DataFrame({
-    "Server": list(nodes.keys()),
-    "Temperature (°C)": [
-        nodes[name]["temperature"] for name in nodes
-    ],
-    "CPU Usage (%)": [
-        nodes[name]["cpu"] for name in nodes
-    ],
-    "RAM Usage (%)": [
-        nodes[name]["ram"] for name in nodes
-    ],
-    "Fan Speed (%)": [
-        final_fan_commands[name] for name in nodes
-    ]
-}).set_index("Server")
+history = mqtt_snapshot.get("history", [])
 
+if history:
 
-# First Row - Temperature and CPU
-graph_col1, graph_col2 = st.columns(2)
+    history_df = pd.DataFrame(history)
 
-with graph_col1:
-    st.markdown("#### 🌡️ Temperature Comparison")
-    st.bar_chart(
-        graph_data[["Temperature (°C)"]],
-        height=220,
-        y_label="Temperature (°C)"
+    history_df["Time"] = pd.to_datetime(
+        history_df["Time"]
     )
 
-with graph_col2:
-    st.markdown("#### ⚙️ CPU Usage Comparison")
-    st.bar_chart(
-        graph_data[["CPU Usage (%)"]],
-        height=220,
-        y_label="CPU Usage (%)"
+    history_df = history_df.set_index("Time")
+
+    # Create two columns
+    col1, col2 = st.columns(2)
+
+    # -------------------------------------
+    # GRAPH 1: TEMPERATURE
+    # -------------------------------------
+
+    with col1:
+
+        st.markdown("#### 🌡️ Temperature vs Time")
+
+        temperature_df = history_df[[
+            "Zone 1 Temperature",
+            "Zone 2 Temperature"
+        ]]
+
+        st.line_chart(
+            temperature_df,
+            y_label="Temperature (°C)",
+            height=230
+        )
+
+    # -------------------------------------
+    # GRAPH 2: FAN SPEED
+    # -------------------------------------
+
+    with col2:
+
+        st.markdown("#### 🌀 Fan Speed vs Time")
+
+        fan_df = history_df[[
+            "Fan 1 Speed",
+            "Fan 2 Speed"
+        ]]
+
+        st.line_chart(
+            fan_df,
+            y_label="Fan Speed (%)",
+            height=230
+        )
+
+    # Second row
+    col3, col4 = st.columns(2)
+
+    # -------------------------------------
+    # GRAPH 3: WATER FLOW
+    # -------------------------------------
+
+    with col3:
+
+        st.markdown("#### 💧 Water Flow vs Time")
+
+        if (
+            "Water Flow (L/min)" in history_df.columns
+            and history_df["Water Flow (L/min)"].notna().any()
+        ):
+
+            water_flow_df = history_df[
+                ["Water Flow (L/min)"]
+            ].dropna()
+
+            st.line_chart(
+                water_flow_df,
+                y_label="Virtual Flow (L/min)",
+                height=230
+            )
+
+        else:
+
+            st.info("Waiting for water-flow readings.")
+
+    # -------------------------------------
+    # GRAPH 4: WATER FLOW VS FAN SPEED
+    # -------------------------------------
+
+    with col4:
+
+        st.markdown("#### 💧🌀 Flow vs Average Fan Speed")
+
+        relationship_df = history_df[
+            [
+                "Water Flow (L/min)",
+                "Fan 1 Speed",
+                "Fan 2 Speed"
+            ]
+        ].dropna(
+            subset=["Water Flow (L/min)"]
+        ).copy()
+
+        if not relationship_df.empty:
+
+            relationship_df["Average Fan Speed (%)"] = (
+                relationship_df["Fan 1 Speed"]
+                + relationship_df["Fan 2 Speed"]
+            ) / 2
+
+            st.scatter_chart(
+                relationship_df,
+                x="Average Fan Speed (%)",
+                y="Water Flow (L/min)",
+                height=230
+            )
+
+        else:
+
+            st.info("Waiting for fan-speed and water-flow readings.")
+
+    st.caption(
+        "Graphs display ESP32 telemetry received through MQTT. "
+        "Water flow is simulated, not physically measured."
     )
 
+else:
 
-# Second Row - RAM and Fan Speed
-graph_col3, graph_col4 = st.columns(2)
-
-with graph_col3:
-    st.markdown("#### 💾 RAM Usage Comparison")
-    st.bar_chart(
-        graph_data[["RAM Usage (%)"]],
-        height=220,
-        y_label="RAM Usage (%)"
+    st.info(
+        "Waiting for ESP32 telemetry. Start the Wokwi simulation "
+        "to display live analytics."
     )
 
-with graph_col4:
-    st.markdown("#### ❄️ Cooling Fan Speed")
-    st.bar_chart(
-        graph_data[["Fan Speed (%)"]],
-        height=220,
-        y_label="Fan Speed (%)"
-    )
-
-st.caption(
-    "Live comparison of temperature, CPU, RAM and cooling fan speed "
-    "across both virtual servers."
-)
 
 # =========================================================
 # 24. EVENT LOG
