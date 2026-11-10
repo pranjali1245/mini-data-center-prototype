@@ -47,15 +47,14 @@ MQTT_COMMAND_TOPIC = "mini-dc-demo-7f3a91/fan_command"
 @st.cache_resource
 def start_mqtt_subscriber():
 
-    
-state = {
+    state = {
     "connected": False,
     "latest": None,
     "history": [],
     "last_seen": None,
     "error": None,
     "lock": threading.Lock()
-}
+    }
 
 
     def on_connect(client, userdata, flags, rc):
