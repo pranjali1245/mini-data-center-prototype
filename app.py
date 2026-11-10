@@ -396,7 +396,7 @@ def start_mqtt_subscriber():
                     "Zone 2 Temperature": zone2_temp,
                     "Fan 1 Speed": fan1_speed,
                     "Fan 2 Speed": fan2_speed,
-                    "Water Flow (L/min)": water_flow
+                    "Water Flow (L/min)": water_flow,
                     "Zone 1 Water Flow (L/min)": zone1_water_flow,
                     "Zone 2 Water Flow (L/min)": zone2_water_flow
                 })
