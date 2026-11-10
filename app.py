@@ -783,7 +783,7 @@ st.info(
 # 11. ESP32 MQTT CONNECTION DISPLAY
 # =========================================================
 
-st.subheader("0. ESP32 → MQTT Live Sensor Data")
+st.subheader("📡 ESP32 → MQTT Live Sensor Data")
 
 if mqtt_snapshot["connected"]:
 
@@ -1116,7 +1116,7 @@ else:
 # 13. VIRTUAL SERVER MONITORING INCLUDING GPU
 # =========================================================
 
-st.subheader("1. Virtual Server Monitoring")
+st.subheader("🖥️ Virtual Server Monitoring")
 
 cols = st.columns(2)
 
@@ -1185,7 +1185,7 @@ for col, (name, data) in zip(cols, nodes.items()):
 # =========================================================
 
 st.divider()
-st.subheader("2. Submit a New Application")
+st.subheader("🚀 Submit a New Application")
 
 left, right = st.columns([2, 1])
 
@@ -1386,7 +1386,7 @@ if st.session_state.last_decision:
 # =========================================================
 
 st.divider()
-st.subheader("3. Running Applications")
+st.subheader("📦 Running Applications")
 
 if st.session_state.deployments:
 
@@ -1422,7 +1422,7 @@ else:
 # =========================================================
 
 st.divider()
-st.subheader("4. Remove a Running Application")
+st.subheader("🗑️ Remove a Running Application")
 
 if st.session_state.deployments:
 
@@ -1502,7 +1502,7 @@ else:
 # =========================================================
 
 st.divider()
-st.subheader("5. ML-Based Cooling Prediction")
+st.subheader("🤖 ML-Based Cooling Prediction")
 
 cool_rows = []
 fan_commands = {}
@@ -1551,7 +1551,7 @@ st.caption(
 # =========================================================
 
 st.divider()
-st.subheader("6. Virtual Cooling Response")
+st.subheader("🌬️ Virtual Cooling Response")
 
 manual_mode = st.toggle(
     "Enable Manual Fan Control",
@@ -1804,7 +1804,7 @@ st.caption(
 # =========================================================
 
 st.divider()
-st.subheader("7. Execution and System Event Log")
+st.subheader("📜 Execution and System Event Log")
 
 if st.session_state.logs:
 
@@ -1821,7 +1821,7 @@ else:
 # =========================================================
 
 st.divider()
-st.subheader("8. Prototype Architecture and Limitations")
+st.subheader("🏗️ Prototype Architecture and Limitations")
 
 st.markdown("""
 - **Laptop/cloud app:** Central dashboard and Python scheduler.
@@ -1841,3 +1841,100 @@ st.markdown("""
 - **Physical limitation:** No actual water flow, cooling, GPU or power measurement
   is performed in this virtual prototype.
 """)
+
+
+# =========================================================
+# 25. FOOTER
+# =========================================================
+
+st.markdown(
+    """
+<style>
+.footer {
+    margin-top: 48px;
+    background: linear-gradient(120deg, #0B3D91 0%, #1E6FD9 60%, #60A5FA 100%);
+    color: #FFFFFF;
+    border-radius: 20px 20px 0 0;
+    padding: 34px 36px 18px 36px;
+    box-shadow: 0 -6px 24px rgba(30, 111, 217, 0.22);
+}
+.footer-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    justify-content: space-between;
+}
+.footer-col { min-width: 200px; flex: 1; }
+.footer-brand {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+.footer-text {
+    color: #DCEBFF;
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+.footer h4 {
+    color: #FFFFFF !important;
+    font-size: 0.95rem;
+    margin: 0 0 10px 0;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.footer-chip {
+    display: inline-block;
+    background: rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #FFFFFF;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    margin: 0 6px 8px 0;
+}
+.footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.28);
+    margin-top: 22px;
+    padding-top: 14px;
+    text-align: center;
+    color: #DCEBFF;
+    font-size: 0.82rem;
+}
+</style>
+
+<div class="footer">
+    <div class="footer-grid">
+        <div class="footer-col">
+            <div class="footer-brand">💧 Hydro-Trace</div>
+            <div class="footer-text">
+                AI Water-Saving Engine — a virtual data center prototype that
+                combines ML cooling prediction with smart workload scheduling
+                to reduce cooling water usage.
+            </div>
+        </div>
+        <div class="footer-col">
+            <h4>⚙️ Tech Stack</h4>
+            <span class="footer-chip">🐍 Python</span>
+            <span class="footer-chip">🎈 Streamlit</span>
+            <span class="footer-chip">📡 MQTT</span>
+            <span class="footer-chip">🔌 ESP32</span>
+            <span class="footer-chip">🌲 Random Forest</span>
+        </div>
+        <div class="footer-col">
+            <h4>✨ Highlights</h4>
+            <div class="footer-text">
+                🌡️ Live temperature monitoring<br>
+                🌀 ML-driven fan control<br>
+                💧 Virtual water-flow analytics<br>
+                ⚡ Estimated power insights
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        © 2026 Hydro-Trace · Virtual prototype for demonstration —
+        no real water flow, cooling or power is measured.
+    </div>
+</div>
+""",
+    unsafe_allow_html=True
+)
