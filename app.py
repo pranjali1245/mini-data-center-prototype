@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import json
@@ -6,10 +5,10 @@ import threading
 import uuid
 import math
 from datetime import datetime
+from pathlib import Path
 import paho.mqtt.client as mqtt
 from streamlit_autorefresh import st_autorefresh
 import joblib
-from pathlib import Path
 
 
 # =========================================================
@@ -18,20 +17,168 @@ from pathlib import Path
 
 st.set_page_config(
     page_title="Hydro-Trace | AI Water-Saving Engine",
-    page_icon="🖥️",
+    page_icon="💧",
     layout="wide"
 )
 
-st.title("🖥️ Hydro-Trace — AI Water-Saving Engine")
-st.caption(
-    "Virtual Data Center Prototype | "
-    "ESP32 + MQTT + ML Cooling + Workload Scheduling"
-)
+
+# =========================================================
+# 2. PROFESSIONAL BLUE & WHITE THEME
+# =========================================================
+
+st.markdown("""
+<style>
+
+.stApp {
+    background: linear-gradient(135deg, #f4f8ff 0%, #edf4ff 100%);
+    color: #17365d;
+}
+
+.block-container {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+    max-width: 1500px;
+}
+
+.hero {
+    background: linear-gradient(120deg, #073b75, #0878c9, #20a4e8);
+    padding: 30px 35px;
+    border-radius: 18px;
+    color: white;
+    margin-bottom: 25px;
+    box-shadow: 0 8px 25px rgba(0, 73, 145, 0.18);
+}
+
+.hero h1 {
+    color: white !important;
+    font-size: 34px !important;
+    font-weight: 800 !important;
+    margin-bottom: 8px;
+}
+
+.hero p {
+    color: #e4f3ff !important;
+    font-size: 15px;
+    margin-bottom: 0;
+}
+
+h2, h3 {
+    color: #07549a !important;
+    font-weight: 750 !important;
+}
+
+h4 {
+    color: #1477bd !important;
+}
+
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #e5f1ff, #f7fbff);
+    border-right: 1px solid #c9ddf4;
+}
+
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: #064b89 !important;
+}
+
+[data-testid="stMetric"] {
+    background: #ffffff;
+    border: 1px solid #d8e8f8;
+    border-radius: 13px;
+    padding: 15px 17px;
+    box-shadow: 0 3px 12px rgba(30, 90, 150, 0.07);
+}
+
+[data-testid="stMetricLabel"] {
+    color: #52718f !important;
+    font-weight: 600;
+}
+
+[data-testid="stMetricValue"] {
+    color: #07549a !important;
+    font-weight: 800;
+}
+
+.stButton > button {
+    background: linear-gradient(110deg, #07549a, #168bd4);
+    color: white;
+    border: none;
+    border-radius: 9px;
+    padding: 9px 18px;
+    font-weight: 650;
+    transition: 0.2s ease;
+}
+
+.stButton > button:hover {
+    background: linear-gradient(110deg, #043c73, #0875bd);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 90, 160, 0.2);
+}
+
+.stButton > button[kind="primary"] {
+    background: linear-gradient(110deg, #034b91, #078de0);
+}
+
+[data-testid="stDataFrame"] {
+    border: 1px solid #d6e6f5;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+}
+
+.stProgress > div > div > div {
+    background: linear-gradient(90deg, #0878c9, #35b6ed);
+}
+
+[data-testid="stAlert"] {
+    border-radius: 11px;
+}
+
+.stSelectbox > div > div,
+.stNumberInput input,
+.stTextInput input {
+    border-radius: 9px;
+}
+
+hr {
+    border-color: #cbdff2 !important;
+}
+
+[data-testid="stCaptionContainer"] {
+    color: #64809c;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 
 # =========================================================
-# 2. MQTT SETTINGS
+# 3. DASHBOARD HEADER
 # =========================================================
+
+st.markdown("""
+<div class="hero">
+    <h1>💧 HYDRO-TRACE</h1>
+    <p>
+        AI-Powered Smart Data Center Cooling & Workload Management
+        <br>
+       ESP32 • MQTT • Machine Learning • Smart Scheduling
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+
+# =========================================================
+# 4. MQTT SETTINGS
+# =========================================================
+
+MQTT_HOST = "broker.hivemq.com"
+MQTT_PORT = 8000
+
+MQTT_TOPIC = "mini-dc-demo-7f3a91/telemetry"
+MQTT_COMMAND_TOPIC = "mini-dc-demo-7f3a91/fan_command"
+
 
 MQTT_HOST = "broker.hivemq.com"
 MQTT_PORT = 8000
@@ -48,14 +195,13 @@ MQTT_COMMAND_TOPIC = "mini-dc-demo-7f3a91/fan_command"
 def start_mqtt_subscriber():
 
     state = {
-    "connected": False,
-    "latest": None,
-    "history": [],
-    "last_seen": None,
-    "error": None,
-    "lock": threading.Lock()
+        "connected": False,
+        "latest": None,
+        "last_seen": None,
+        "error": None,
+        "history": [],
+        "lock": threading.Lock()
     }
-
 
     def on_connect(client, userdata, flags, rc):
 
@@ -109,7 +255,7 @@ def start_mqtt_subscriber():
             ):
                 raise ValueError("Invalid temperature reading.")
 
-            # Humidity - optional for older ESP32 messages
+            # Humidity
             humidity = payload.get("humidity")
 
             if humidity is not None:
@@ -120,7 +266,7 @@ def start_mqtt_subscriber():
                         "Humidity must be between 0 and 100%."
                     )
 
-            # Water flow - optional for backward compatibility
+            # Water flow
             water_flow = payload.get("water_flow")
 
             if water_flow is not None:
@@ -142,7 +288,9 @@ def start_mqtt_subscriber():
                 0 <= fan1_speed <= 100
                 and 0 <= fan2_speed <= 100
             ):
-                raise ValueError("Fan speed must be between 0 and 100.")
+                raise ValueError(
+                    "Fan speed must be between 0 and 100."
+                )
 
             clean = {
                 "zone1_temp": zone1_temp,
@@ -152,17 +300,27 @@ def start_mqtt_subscriber():
                 "fan1_speed": fan1_speed,
                 "fan2_speed": fan2_speed
             }
-            
 
-            
             with state["lock"]:
-            
 
                 state["latest"] = clean
 
-                state["last_seen"] = (
-                    datetime.now().strftime("%H:%M:%S")
-                )
+                now = datetime.now()
+                state["last_seen"] = now.strftime("%H:%M:%S")
+
+                # Save telemetry for live graphs.
+                # Water flow is included in history.
+                state["history"].append({
+                    "Time": now,
+                    "Zone 1 Temperature": zone1_temp,
+                    "Zone 2 Temperature": zone2_temp,
+                    "Fan 1 Speed": fan1_speed,
+                    "Fan 2 Speed": fan2_speed,
+                    "Water Flow (L/min)": water_flow
+                })
+
+                if len(state["history"]) > 300:
+                    state["history"] = state["history"][-300:]
 
                 state["error"] = None
 
@@ -212,29 +370,21 @@ mqtt_connection = start_mqtt_subscriber()
 mqtt_state = mqtt_connection["state"]
 
 
-
 def get_mqtt_snapshot():
 
     with mqtt_state["lock"]:
 
         return {
             "connected": mqtt_state["connected"],
-
             "latest": (
                 dict(mqtt_state["latest"])
                 if mqtt_state["latest"]
                 else None
             ),
-
-            "history": [
-                dict(item)
-                for item in mqtt_state["history"]
-            ],
-
             "last_seen": mqtt_state["last_seen"],
-            "error": mqtt_state["error"]
+            "error": mqtt_state["error"],
+            "history": list(mqtt_state["history"])
         }
-
 
 
 # =========================================================
@@ -344,25 +494,29 @@ DEFAULT_NODES = {
 
 
 # =========================================================
-# 7. SESSION STATE INITIALIZATION
+# 7. SHARED DEMO STATE
 # =========================================================
 
-if "nodes" not in st.session_state:
+@st.cache_resource
+def get_shared_demo_state():
 
-    st.session_state.nodes = {
-        name: {**data, "apps": []}
-        for name, data in DEFAULT_NODES.items()
+    return {
+        "nodes": {
+            name: {**data, "apps": []}
+            for name, data in DEFAULT_NODES.items()
+        },
+        "deployments": [],
+        "logs": [],
+        "last_decision": None
     }
 
 
-if "deployments" not in st.session_state:
-    st.session_state.deployments = []
+shared_demo_state = get_shared_demo_state()
 
-if "logs" not in st.session_state:
-    st.session_state.logs = []
-
-if "last_decision" not in st.session_state:
-    st.session_state.last_decision = None
+st.session_state.nodes = shared_demo_state["nodes"]
+st.session_state.deployments = shared_demo_state["deployments"]
+st.session_state.logs = shared_demo_state["logs"]
+st.session_state.last_decision = shared_demo_state["last_decision"]
 
 
 # Recover missing fields from older sessions
@@ -416,6 +570,7 @@ for name, node in st.session_state.nodes.items():
         all_deployments.append(app)
 
 st.session_state.deployments = all_deployments
+shared_demo_state["deployments"] = st.session_state.deployments
 
 
 def recalculate_server_resources():
@@ -460,11 +615,11 @@ if live_mode:
         interval=2000,
         key="mqtt_dashboard_refresh"
     )
-
     st.sidebar.caption(
-        "Temperature, humidity and water-flow readings "
-        "arrive through Wokwi MQTT."
+    "Temperature and humidity arrive through Wokwi MQTT. "
+    "Virtual water flow is calculated by ESP32 using fan speed."
     )
+
 
 else:
 
@@ -558,6 +713,11 @@ if st.sidebar.button("↺ Reset demonstration"):
     st.session_state.logs = []
     st.session_state.last_decision = None
 
+    shared_demo_state["nodes"] = st.session_state.nodes
+    shared_demo_state["deployments"] = st.session_state.deployments
+    shared_demo_state["logs"] = st.session_state.logs
+    shared_demo_state["last_decision"] = st.session_state.last_decision
+
     st.rerun()
 
 
@@ -566,13 +726,13 @@ if st.sidebar.button("↺ Reset demonstration"):
 # =========================================================
 
 st.info(
-    "ESP32 telemetry is received through MQTT. "
-    "Temperature and humidity are simulated/read through Wokwi "
-    "components. Water flow is simulated using a potentiometer. "
-    "Raspberry Pi nodes, CPU/RAM values and cooling model "
-    "remain virtual simulations."
+    "Workload assignments are kept in shared in-memory state, "
+    "so they survive browser refreshes while this Streamlit app "
+    "process remains running. ESP32 telemetry is received through MQTT. "
+    "Temperature and humidity are simulated/read through Wokwi components. "
+    "Water flow is calculated virtually by ESP32 from average fan speed. "
+    "Raspberry Pi nodes, CPU/RAM values and cooling model remain virtual simulations."
 )
-
 
 # =========================================================
 # 11. ESP32 MQTT CONNECTION DISPLAY
@@ -650,11 +810,13 @@ if mqtt_snapshot["latest"]:
         f"Last ESP32 message received at "
         f"{mqtt_snapshot['last_seen']}."
     )
-
     st.caption(
-        "Water flow is a virtual 0–20 L/min value generated "
-        "from the Wokwi potentiometer, not a physical flow measurement."
+    "Virtual water flow is automatically calculated by ESP32 "
+    "from average fan speed (0–100%), with a simulated range "
+    "of 0–20 L/min. It is not a physical water-flow measurement."
     )
+
+  
 
 else:
 
@@ -663,576 +825,6 @@ else:
         "Check Wokwi MQTT connection and topic."
     )
 
-
-# =========================================================
-# 12. VIRTUAL SERVER MONITORING
-# =========================================================
-
-st.subheader("1. Virtual Server Monitoring")
-
-cols = st.columns(2)
-
-for col, (name, data) in zip(cols, nodes.items()):
-
-    with col:
-
-        status = "Online" if data["online"] else "Offline"
-
-        st.metric(name, status)
-
-        m1, m2, m3 = st.columns(3)
-
-        m1.metric(
-            "Temperature",
-            f'{data["temperature"]:.1f} °C'
-        )
-
-        m2.metric(
-            "CPU Usage",
-            f'{data["cpu"]:.0f}%'
-        )
-
-        m3.metric(
-            "RAM Usage",
-            f'{data["ram"]:.0f}%'
-        )
-
-        st.metric(
-            "Workload Heat Load",
-            f'{data["heat_load"]:.2f}'
-        )
-
-        st.progress(
-            int(min(100, data["cpu"])),
-            text="CPU Utilization"
-        )
-
-        st.progress(
-            int(min(100, data["ram"])),
-            text="RAM Utilization"
-        )
-
-        st.write(
-            "Running Applications:",
-            ", ".join(
-                app["app"] for app in data["apps"]
-            ) if data["apps"] else "None"
-        )
-
-
-# =========================================================
-# 13. APPLICATION SUBMISSION
-# =========================================================
-
-st.divider()
-st.subheader("2. Submit a New Application")
-
-left, right = st.columns([2, 1])
-
-with left:
-
-    selected_app = st.selectbox(
-        "Choose Application",
-        list(app_catalog.keys())
-    )
-
-    st.caption(
-        app_catalog[selected_app]["description"]
-    )
-
-with right:
-
-    req = app_catalog[selected_app]
-
-    st.metric(
-        "Estimated CPU Requirement",
-        f'{req["cpu"]}%'
-    )
-
-    st.metric(
-        "Estimated RAM Requirement",
-        f'{req["ram"]}%'
-    )
-
-    st.metric(
-        "Estimated Heat Load",
-        f'{req["heat"]:.2f}'
-    )
-
-
-# =========================================================
-# 14. AUTOMATIC WORKLOAD SCHEDULER
-# =========================================================
-
-def choose_node(app_req):
-
-    candidates = []
-    rejected = []
-
-    for name, node in nodes.items():
-
-        reasons = []
-
-        if not node["online"]:
-            reasons.append("Server offline")
-
-        if node["temperature"] >= 48:
-            reasons.append("Temperature safety threshold reached")
-
-        if node["cpu"] + app_req["cpu"] > 90:
-            reasons.append("Insufficient CPU headroom")
-
-        if node["ram"] + app_req["ram"] > 90:
-            reasons.append("Insufficient RAM headroom")
-
-        if reasons:
-
-            rejected.append({
-                "server": name,
-                "reasons": reasons
-            })
-
-            continue
-
-        score = (
-            (node["temperature"] / 50) * 0.40
-            + (node["cpu"] / 100) * 0.35
-            + (node["ram"] / 100) * 0.25
-        )
-
-        candidates.append((score, name))
-
-    if not candidates:
-        return None, rejected
-
-    candidates.sort()
-
-    return candidates[0][1], rejected
-
-
-# =========================================================
-# 15. ASSIGN APPLICATION
-# =========================================================
-
-if st.button(
-    "🚀 Submit Application — Automatic Placement",
-    type="primary"
-):
-
-    chosen, rejected = choose_node(req)
-
-    if chosen is None:
-
-        st.session_state.last_decision = {
-            "status": "Rejected",
-            "app": selected_app,
-            "node": None,
-            "reason": "No suitable server available"
-        }
-
-        st.session_state.logs.insert(
-            0,
-            f"REJECTED: {selected_app} — no suitable server available"
-        )
-
-    else:
-
-        node = nodes[chosen]
-
-        deployment = {
-
-            "id": str(uuid.uuid4())[:8],
-            "app": selected_app,
-            "node": chosen,
-            "cpu": req["cpu"],
-            "ram": req["ram"],
-            "heat": req["heat"],
-            "time": datetime.now().strftime("%H:%M:%S")
-        }
-
-        node["apps"].append(deployment)
-
-        st.session_state.deployments.append(deployment)
-
-        recalculate_server_resources()
-
-        st.session_state.last_decision = {
-
-            "status": "Deployed",
-            "app": selected_app,
-            "node": chosen,
-
-            "reason": (
-                "Best eligible server selected after "
-                "temperature, CPU and RAM checks."
-            )
-        }
-
-        st.session_state.logs.insert(
-            0,
-            f"DEPLOYED: {selected_app} -> {chosen}"
-        )
-
-    st.rerun()
-
-
-# =========================================================
-# 16. LAST DEPLOYMENT DECISION
-# =========================================================
-
-if st.session_state.last_decision:
-
-    decision = st.session_state.last_decision
-
-    if decision["status"] == "Deployed":
-
-        st.success(
-            f'Application "{decision["app"]}" deployed to '
-            f'**{decision["node"]}**.'
-        )
-
-        st.caption(decision["reason"])
-
-    else:
-
-        st.error(
-            f'Application "{decision["app"]}" was not deployed: '
-            f'{decision["reason"]}.'
-        )
-
-        st.caption(
-            "Check server status, CPU, RAM and temperature capacity."
-        )
-
-
-# =========================================================
-# 17. RUNNING APPLICATIONS
-# =========================================================
-
-st.divider()
-st.subheader("3. Running Applications")
-
-if st.session_state.deployments:
-
-    deployment_rows = []
-
-    for deployment in st.session_state.deployments:
-
-        deployment_rows.append({
-
-            "Application": deployment["app"],
-            "Server": deployment["node"],
-            "CPU": f'{deployment["cpu"]}%',
-            "RAM": f'{deployment["ram"]}%',
-            "Heat": f'{deployment["heat"]:.2f}',
-            "Deployment ID": deployment["id"],
-            "Time": deployment["time"]
-        })
-
-    st.dataframe(
-        pd.DataFrame(deployment_rows),
-        use_container_width=True,
-        hide_index=True
-    )
-
-else:
-
-    st.info("No applications are currently deployed.")
-
-
-# =========================================================
-# 18. REMOVE APPLICATION
-# =========================================================
-
-st.divider()
-st.subheader("4. Remove a Running Application")
-
-if st.session_state.deployments:
-
-    deployment_options = {
-
-        f'{d["app"]} | {d["node"]} | ID: {d["id"]}': d["id"]
-
-        for d in st.session_state.deployments
-    }
-
-    selected_deployment = st.selectbox(
-        "Select Application to Remove",
-        list(deployment_options.keys()),
-        key="remove_application_select"
-    )
-
-    if st.button("🗑️ Remove Selected Application"):
-
-        deployment_id = deployment_options[selected_deployment]
-
-        deployment_to_remove = next(
-            (
-                d for d in st.session_state.deployments
-                if d["id"] == deployment_id
-            ),
-            None
-        )
-
-        if deployment_to_remove:
-
-            server_name = deployment_to_remove["node"]
-            server = nodes[server_name]
-
-            server["apps"] = [
-                app for app in server["apps"]
-                if app["id"] != deployment_id
-            ]
-
-            recalculate_server_resources()
-
-            st.session_state.deployments = [
-                d for d in st.session_state.deployments
-                if d["id"] != deployment_id
-            ]
-
-            st.session_state.logs.insert(
-                0,
-                f'REMOVED: {deployment_to_remove["app"]} '
-                f'from {server_name}'
-            )
-
-            st.session_state.last_decision = {
-
-                "status": "Removed",
-                "app": deployment_to_remove["app"],
-                "node": server_name,
-                "reason": "Application resources released successfully"
-            }
-
-            st.rerun()
-
-else:
-
-    st.info("There are no running applications to remove.")
-
-
-# =========================================================
-# 19. ML-BASED COOLING PREDICTION
-# =========================================================
-
-st.divider()
-st.subheader("5. ML-Based Cooling Prediction")
-
-cool_rows = []
-fan_commands = {}
-
-for name, node in nodes.items():
-
-    features = make_cooling_features(node)
-
-    prediction = cooling_model.predict(features)[0]
-
-    probabilities = cooling_model.predict_proba(features)[0]
-
-    confidence = float(max(probabilities) * 100)
-
-    fan = {
-        "Low": 30,
-        "Medium": 60,
-        "High": 90
-    }[prediction]
-
-    fan_commands[name] = fan
-
-    cool_rows.append({
-
-        "Virtual Zone": name,
-        "Predicted Cooling": prediction,
-        "Suggested Virtual Fan Speed": f"{fan}%",
-        "Model Confidence": f"{confidence:.0f}%"
-    })
-
-
-st.dataframe(
-    pd.DataFrame(cool_rows),
-    use_container_width=True,
-    hide_index=True
-)
-
-st.caption(
-    "ML note: Random Forest is trained on synthetic demonstration data. "
-    "Its predictions demonstrate the ML pipeline and are not calibrated "
-    "for real server thermal safety."
-)
-
-
-# =========================================================
-# 20. VIRTUAL COOLING RESPONSE
-# =========================================================
-
-st.divider()
-st.subheader("6. Virtual Cooling Response")
-
-manual_mode = st.toggle(
-    "Enable Manual Fan Control",
-    value=False,
-    key="manual_fan_control"
-)
-
-
-if manual_mode:
-
-    manual_cols = st.columns(2)
-
-    manual_fan1 = manual_cols[0].slider(
-        "Pi 1 Manual Fan Speed",
-        0,
-        100,
-        60,
-        key="manual_fan1"
-    )
-
-    manual_fan2 = manual_cols[1].slider(
-        "Pi 2 Manual Fan Speed",
-        0,
-        100,
-        60,
-        key="manual_fan2"
-    )
-
-    final_fan_commands = {
-
-        "Virtual Raspberry Pi 1": manual_fan1,
-        "Virtual Raspberry Pi 2": manual_fan2
-    }
-
-    st.info(
-        "Manual mode active. Slider values control fan commands."
-    )
-
-else:
-
-    final_fan_commands = fan_commands
-
-    st.success(
-        "Automatic ML Cooling Control is Active."
-    )
-
-
-fan_cols = st.columns(2)
-
-for col, (name, node) in zip(fan_cols, nodes.items()):
-
-    fan = final_fan_commands[name]
-
-    if manual_mode:
-        prediction = "Manual"
-
-    else:
-        prediction = cooling_model.predict(
-            make_cooling_features(node)
-        )[0]
-
-    with col:
-
-        st.write(f"**{name} — Virtual Fan**")
-
-        st.progress(
-            fan,
-            text=f"Simulated Fan Command: {fan}% ({prediction})"
-        )
-
-        if st.button(
-            f"Apply Simulated Cooling to {name}",
-            key=f"cool_{name}"
-        ):
-
-            if live_mode and mqtt_snapshot["latest"]:
-
-                st.warning(
-                    "Live temperature is controlled by ESP32 telemetry. "
-                    "Use fan control to change the live fan command."
-                )
-
-            else:
-
-                node["temperature"] = max(
-                    22.0,
-                    node["temperature"] - fan * 0.035
-                )
-
-                st.session_state.logs.insert(
-                    0,
-                    f"SIMULATED COOLING: {name}, fan {fan}%"
-                )
-
-                st.rerun()
-
-
-# =========================================================
-# 21. SINGLE MQTT COMMAND PUBLISH BLOCK
-# =========================================================
-
-# Only this section publishes fan commands.
-# Manual mode sends slider values.
-# Automatic mode sends ML predicted values.
-
-final_payload = {
-
-    "fan1_speed": int(
-        final_fan_commands["Virtual Raspberry Pi 1"]
-    ),
-
-    "fan2_speed": int(
-        final_fan_commands["Virtual Raspberry Pi 2"]
-    ),
-
-    "zone1_heat": float(
-        nodes["Virtual Raspberry Pi 1"]["heat_load"]
-    ),
-
-    "zone2_heat": float(
-        nodes["Virtual Raspberry Pi 2"]["heat_load"]
-    )
-}
-
-
-command_status = "Waiting for MQTT connection"
-
-if mqtt_snapshot["connected"]:
-
-    try:
-
-        result = mqtt_connection["client"].publish(
-            MQTT_COMMAND_TOPIC,
-            json.dumps(final_payload),
-            qos=0,
-            retain=False
-        )
-
-        if result.rc == mqtt.MQTT_ERR_SUCCESS:
-
-            command_status = "Cooling commands sent to ESP32."
-
-        else:
-
-            command_status = f"MQTT publish error: {result.rc}"
-
-    except Exception as exc:
-
-        command_status = f"Could not publish fan commands: {exc}"
-
-else:
-
-    command_status = "Waiting for MQTT connection."
-
-
-st.info(
-    f"{command_status} | "
-    f"Fan 1: {final_payload['fan1_speed']}% | "
-    f"Fan 2: {final_payload['fan2_speed']}%"
-)
-
-st.caption(
-    f"Command topic: {MQTT_COMMAND_TOPIC}. "
-    "Keep Wokwi ESP32 simulation running."
-)
 # =========================================================
 # 12. LIVE TEMPERATURE, FAN AND WATER FLOW GRAPHS
 # =========================================================
@@ -1372,189 +964,703 @@ else:
         "to display live temperature, fan-speed and virtual water-flow graphs."
     )
 
-
-
 # =========================================================
-# 22. COOLING PERFORMANCE ANALYTICS
+# COOLING PERFORMANCE ANALYTICS
 # =========================================================
 
-st.divider()
-st.subheader("8. Cooling Performance Analytics")
+st.markdown("---")
+st.subheader("❄️ Cooling Performance Analytics")
 
+analytics_history = mqtt_snapshot.get("history", [])
 
-def calculate_htes(temperature, fan_speed):
+if analytics_history:
 
-    temperature_score = max(
-        0,
-        min(100, 100 - max(0, temperature - 25) * 2.5)
-    )
+    analytics_df = pd.DataFrame(analytics_history)
 
-    fan_effort_score = max(
-        75,
-        min(100, 100 - fan_speed * 0.25)
-    )
+    latest = analytics_df.iloc[-1]
 
-    htes = (
-        temperature_score * 0.70
-        + fan_effort_score * 0.30
-    )
+    # Current readings
+    temp1 = float(latest.get("Zone 1 Temperature", 20))
+    temp2 = float(latest.get("Zone 2 Temperature", 20))
 
-    return round(htes, 1)
+    fan1 = float(latest.get("Fan 1 Speed", 0))
+    fan2 = float(latest.get("Fan 2 Speed", 0))
 
+    water_flow = float(latest.get("Water Flow (L/min)", 0))
 
-htes_values = []
+    avg_fan_speed = (fan1 + fan2) / 2
+    avg_temperature = (temp1 + temp2) / 2
+    max_temperature = max(temp1, temp2)
 
-cooling_cols = st.columns(2)
+    # Temperature trend from previous reading
+    if len(analytics_df) >= 2:
+        previous = analytics_df.iloc[-2]
 
-for col, (name, node) in zip(cooling_cols, nodes.items()):
+        previous_avg_temp = (
+            float(previous.get("Zone 1 Temperature", temp1)) +
+            float(previous.get("Zone 2 Temperature", temp2))
+        ) / 2
 
-    fan_speed = final_fan_commands[name]
-    temperature = node["temperature"]
-
-    htes = calculate_htes(
-        temperature,
-        fan_speed
-    )
-
-    htes_values.append(htes)
-
-    if htes >= 85:
-        status = "Excellent"
-
-    elif htes >= 70:
-        status = "Good"
-
-    elif htes >= 50:
-        status = "Moderate"
-
+        temperature_change = avg_temperature - previous_avg_temp
     else:
-        status = "Needs Attention"
+        temperature_change = 0.0
+
+    # Demo cooling status
+    if max_temperature < 40:
+        cooling_status = "Normal"
+    elif max_temperature < 48:
+        cooling_status = "Monitor"
+    else:
+        cooling_status = "High Temperature"
+
+    # KPI Cards
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric(
+        "Average Temperature",
+        f"{avg_temperature:.1f} °C",
+        f"{temperature_change:+.2f} °C"
+    )
+
+    c2.metric(
+        "Average Fan Speed",
+        f"{avg_fan_speed:.0f}%"
+    )
+
+    c3.metric(
+        "Virtual Water Flow",
+        f"{water_flow:.2f} L/min"
+    )
+
+    c4.metric(
+        "Cooling Status",
+        cooling_status
+    )
+
+    st.markdown("### Zone-wise Cooling Response")
+
+    zone1_status = (
+        "Normal" if temp1 < 40
+        else "Monitor" if temp1 < 48
+        else "High Temperature"
+    )
+
+    zone2_status = (
+        "Normal" if temp2 < 40
+        else "Monitor" if temp2 < 48
+        else "High Temperature"
+    )
+
+    zone_data = pd.DataFrame({
+        "Zone": ["Zone 1", "Zone 2"],
+        "Temperature (°C)": [temp1, temp2],
+        "Fan Speed (%)": [fan1, fan2],
+        "Cooling Status": [zone1_status, zone2_status]
+    })
+
+    st.dataframe(
+        zone_data,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.caption(
+        "Temperature change shows the difference from the previous "
+        "telemetry reading. Water flow is simulated from average fan speed. "
+        "Cooling status uses demo thresholds, not real hardware safety limits."
+    )
+
+else:
+    st.info(
+        "Waiting for ESP32 telemetry. Cooling analytics will appear "
+        "when live readings are received."
+    )
+
+# =========================================================
+# 13. VIRTUAL SERVER MONITORING
+# =========================================================
+
+st.subheader("1. Virtual Server Monitoring")
+
+cols = st.columns(2)
+
+for col, (name, data) in zip(cols, nodes.items()):
 
     with col:
 
-        st.markdown(f"### {name}")
+        status = "Online" if data["online"] else "Offline"
 
-        st.metric(
-            "Zone Temperature",
-            f"{temperature:.1f} °C"
+        st.metric(name, status)
+
+        m1, m2, m3 = st.columns(3)
+
+        m1.metric(
+            "Temperature",
+            f'{data["temperature"]:.1f} °C'
+        )
+
+        m2.metric(
+            "CPU Usage",
+            f'{data["cpu"]:.0f}%'
+        )
+
+        m3.metric(
+            "RAM Usage",
+            f'{data["ram"]:.0f}%'
         )
 
         st.metric(
-            "Cooling Fan Speed",
-            f"{fan_speed}%"
-        )
-
-        st.metric(
-            "Thermal Efficiency Score",
-            f"{htes}/100"
+            "Workload Heat Load",
+            f'{data["heat_load"]:.2f}'
         )
 
         st.progress(
-            int(htes),
-            text=f"Cooling Status: {status}"
+            int(min(100, data["cpu"])),
+            text="CPU Utilization"
+        )
+
+        st.progress(
+            int(min(100, data["ram"])),
+            text="RAM Utilization"
+        )
+
+        st.write(
+            "Running Applications:",
+            ", ".join(
+                app["app"] for app in data["apps"]
+            ) if data["apps"] else "None"
         )
 
 
-overall_htes = round(
-    sum(htes_values) / len(htes_values),
-    1
-)
-
-st.metric(
-    "Overall Thermal Efficiency Score",
-    f"{overall_htes}/100"
-)
-
-st.caption(
-    "HTES is an illustrative virtual score based on "
-    "temperature and fan speed, not a measured physical efficiency."
-)
-
-
 # =========================================================
-# 23. VIRTUAL POWER ANALYTICS
+# 14. APPLICATION SUBMISSION
 # =========================================================
 
 st.divider()
-st.subheader("9. Power Consumption Analytics")
+st.subheader("2. Submit a New Application")
 
+left, right = st.columns([2, 1])
 
-def calculate_virtual_power(node, fan_speed):
+with left:
 
-    power = (
-        2.5
-        + (node["cpu"] * 0.035)
-        + (node["ram"] * 0.015)
-        + (fan_speed * 0.005)
+    selected_app = st.selectbox(
+        "Choose Application",
+        list(app_catalog.keys())
     )
 
-    return round(power, 2)
+    st.caption(
+        app_catalog[selected_app]["description"]
+    )
+
+with right:
+
+    req = app_catalog[selected_app]
+
+    st.metric(
+        "Estimated CPU Requirement",
+        f'{req["cpu"]}%'
+    )
+
+    st.metric(
+        "Estimated RAM Requirement",
+        f'{req["ram"]}%'
+    )
+
+    st.metric(
+        "Estimated Heat Load",
+        f'{req["heat"]:.2f}'
+    )
 
 
-power_rows = []
+# =========================================================
+# 15. AUTOMATIC WORKLOAD SCHEDULER
+# =========================================================
 
-total_power = 0.0
+def choose_node(app_req):
+
+    candidates = []
+    rejected = []
+
+    for name, node in nodes.items():
+
+        reasons = []
+
+        if not node["online"]:
+            reasons.append("Server offline")
+
+        if node["temperature"] >= 48:
+            reasons.append("Temperature safety threshold reached")
+
+        if node["cpu"] + app_req["cpu"] > 90:
+            reasons.append("Insufficient CPU headroom")
+
+        if node["ram"] + app_req["ram"] > 90:
+            reasons.append("Insufficient RAM headroom")
+
+        if reasons:
+
+            rejected.append({
+                "server": name,
+                "reasons": reasons
+            })
+
+            continue
+
+        score = (
+            (node["temperature"] / 50) * 0.40
+            + (node["cpu"] / 100) * 0.35
+            + (node["ram"] / 100) * 0.25
+        )
+
+        candidates.append((score, name))
+
+    if not candidates:
+        return None, rejected
+
+    candidates.sort()
+
+    return candidates[0][1], rejected
+
+
+# =========================================================
+# 16. ASSIGN APPLICATION
+# =========================================================
+
+if st.button(
+    "🚀 Submit Application — Automatic Placement",
+    type="primary"
+):
+
+    chosen, rejected = choose_node(req)
+
+    if chosen is None:
+
+        st.session_state.last_decision = {
+            "status": "Rejected",
+            "app": selected_app,
+            "node": None,
+            "reason": "No suitable server available"
+        }
+
+        shared_demo_state["last_decision"] = (
+            st.session_state.last_decision
+        )
+
+        st.session_state.logs.insert(
+            0,
+            f"REJECTED: {selected_app} — no suitable server available"
+        )
+
+    else:
+
+        node = nodes[chosen]
+
+        deployment = {
+
+            "id": str(uuid.uuid4())[:8],
+            "app": selected_app,
+            "node": chosen,
+            "cpu": req["cpu"],
+            "ram": req["ram"],
+            "heat": req["heat"],
+            "time": datetime.now().strftime("%H:%M:%S")
+        }
+
+        node["apps"].append(deployment)
+
+        st.session_state.deployments.append(deployment)
+
+        recalculate_server_resources()
+
+        st.session_state.last_decision = {
+
+            "status": "Deployed",
+            "app": selected_app,
+            "node": chosen,
+
+            "reason": (
+                "Best eligible server selected after "
+                "temperature, CPU and RAM checks."
+            )
+        }
+
+        shared_demo_state["last_decision"] = (
+            st.session_state.last_decision
+        )
+
+        st.session_state.logs.insert(
+            0,
+            f"DEPLOYED: {selected_app} -> {chosen}"
+        )
+
+    st.rerun()
+
+
+# =========================================================
+# 17. LAST DEPLOYMENT DECISION
+# =========================================================
+
+if st.session_state.last_decision:
+
+    decision = st.session_state.last_decision
+
+    if decision["status"] == "Deployed":
+
+        st.success(
+            f'Application "{decision["app"]}" deployed to '
+            f'**{decision["node"]}**.'
+        )
+
+        st.caption(decision["reason"])
+
+    else:
+
+        st.error(
+            f'Application "{decision["app"]}" was not deployed: '
+            f'{decision["reason"]}.'
+        )
+
+        st.caption(
+            "Check server status, CPU, RAM and temperature capacity."
+        )
+
+
+# =========================================================
+# 18. RUNNING APPLICATIONS
+# =========================================================
+
+st.divider()
+st.subheader("3. Running Applications")
+
+if st.session_state.deployments:
+
+    deployment_rows = []
+
+    for deployment in st.session_state.deployments:
+
+        deployment_rows.append({
+
+            "Application": deployment["app"],
+            "Server": deployment["node"],
+            "CPU": f'{deployment["cpu"]}%',
+            "RAM": f'{deployment["ram"]}%',
+            "Heat": f'{deployment["heat"]:.2f}',
+            "Deployment ID": deployment["id"],
+            "Time": deployment["time"]
+        })
+
+    st.dataframe(
+        pd.DataFrame(deployment_rows),
+        use_container_width=True,
+        hide_index=True
+    )
+
+else:
+
+    st.info("No applications are currently deployed.")
+
+
+# =========================================================
+# 19. REMOVE APPLICATION
+# =========================================================
+
+st.divider()
+st.subheader("4. Remove a Running Application")
+
+if st.session_state.deployments:
+
+    deployment_options = {
+
+        f'{d["app"]} | {d["node"]} | ID: {d["id"]}': d["id"]
+
+        for d in st.session_state.deployments
+    }
+
+    selected_deployment = st.selectbox(
+        "Select Application to Remove",
+        list(deployment_options.keys()),
+        key="remove_application_select"
+    )
+
+    if st.button("🗑️ Remove Selected Application"):
+
+        deployment_id = deployment_options[selected_deployment]
+
+        deployment_to_remove = next(
+            (
+                d for d in st.session_state.deployments
+                if d["id"] == deployment_id
+            ),
+            None
+        )
+
+        if deployment_to_remove:
+
+            server_name = deployment_to_remove["node"]
+            server = nodes[server_name]
+
+            server["apps"] = [
+                app for app in server["apps"]
+                if app["id"] != deployment_id
+            ]
+
+            recalculate_server_resources()
+
+            st.session_state.deployments = [
+                d for d in st.session_state.deployments
+                if d["id"] != deployment_id
+            ]
+
+            shared_demo_state["deployments"] = (
+                st.session_state.deployments
+            )
+
+            st.session_state.logs.insert(
+                0,
+                f'REMOVED: {deployment_to_remove["app"]} '
+                f'from {server_name}'
+            )
+
+            st.session_state.last_decision = {
+
+                "status": "Removed",
+                "app": deployment_to_remove["app"],
+                "node": server_name,
+                "reason": "Application resources released successfully"
+            }
+
+            shared_demo_state["last_decision"] = (
+                st.session_state.last_decision
+            )
+
+            st.rerun()
+
+else:
+
+    st.info("There are no running applications to remove.")
+
+
+# =========================================================
+# 20. ML-BASED COOLING PREDICTION
+# =========================================================
+
+st.divider()
+st.subheader("5. ML-Based Cooling Prediction")
+
+cool_rows = []
+fan_commands = {}
 
 for name, node in nodes.items():
 
-    fan_speed = final_fan_commands[name]
+    features = make_cooling_features(node)
 
-    estimated_power = calculate_virtual_power(
-        node,
-        fan_speed
-    )
+    prediction = cooling_model.predict(features)[0]
 
-    total_power += estimated_power
+    probabilities = cooling_model.predict_proba(features)[0]
 
-    power_rows.append({
+    confidence = float(max(probabilities) * 100)
 
-        "Virtual Server": name,
+    fan = {
+        "Low": 30,
+        "Medium": 60,
+        "High": 90
+    }[prediction]
 
-        "CPU Usage": f'{node["cpu"]:.0f}%',
+    fan_commands[name] = fan
 
-        "RAM Usage": f'{node["ram"]:.0f}%',
+    cool_rows.append({
 
-        "Fan Speed": f"{fan_speed}%",
-
-        "Estimated Power": f"{estimated_power:.2f} W"
-
+        "Virtual Zone": name,
+        "Predicted Cooling": prediction,
+        "Suggested Virtual Fan Speed": f"{fan}%",
+        "Model Confidence": f"{confidence:.0f}%"
     })
 
 
 st.dataframe(
-    pd.DataFrame(power_rows),
+    pd.DataFrame(cool_rows),
     use_container_width=True,
     hide_index=True
 )
 
-
-power_col1, power_col2, power_col3 = st.columns(3)
-
-power_col1.metric(
-    "Total Estimated Power",
-    f"{total_power:.2f} W"
-)
-
-power_col2.metric(
-    "Estimated Hourly Energy",
-    f"{total_power / 1000:.4f} kWh"
-)
-
-power_col3.metric(
-    "Estimated Daily Energy",
-    f"{(total_power * 24) / 1000:.3f} kWh"
-)
-
-
 st.caption(
-    "Power values are virtual estimates calculated using "
-    "CPU usage, RAM usage and fan speed. "
-    "They are not measured using a physical power sensor."
+    "ML note: Random Forest is trained on synthetic demonstration data. "
+    "Its predictions demonstrate the ML pipeline and are not calibrated "
+    "for real server thermal safety."
 )
 
 
 # =========================================================
-# 24. EVENT LOG
+# 21. VIRTUAL COOLING RESPONSE
+# =========================================================
+
+st.divider()
+st.subheader("6. Virtual Cooling Response")
+
+manual_mode = st.toggle(
+    "Enable Manual Fan Control",
+    value=False,
+    key="manual_fan_control"
+)
+
+
+if manual_mode:
+
+    manual_cols = st.columns(2)
+
+    manual_fan1 = manual_cols[0].slider(
+        "Pi 1 Manual Fan Speed",
+        0,
+        100,
+        60,
+        key="manual_fan1"
+    )
+
+    manual_fan2 = manual_cols[1].slider(
+        "Pi 2 Manual Fan Speed",
+        0,
+        100,
+        60,
+        key="manual_fan2"
+    )
+
+    final_fan_commands = {
+
+        "Virtual Raspberry Pi 1": manual_fan1,
+        "Virtual Raspberry Pi 2": manual_fan2
+    }
+
+    st.info(
+        "Manual mode active. Slider values control fan commands."
+    )
+
+else:
+
+    final_fan_commands = fan_commands
+
+    st.success(
+        "Automatic ML Cooling Control is Active."
+    )
+
+
+fan_cols = st.columns(2)
+
+for col, (name, node) in zip(fan_cols, nodes.items()):
+
+    fan = final_fan_commands[name]
+
+    if manual_mode:
+        prediction = "Manual"
+
+    else:
+        prediction = cooling_model.predict(
+            make_cooling_features(node)
+        )[0]
+
+    with col:
+
+        st.write(f"**{name} — Virtual Fan**")
+
+        st.progress(
+            fan,
+            text=f"Simulated Fan Command: {fan}% ({prediction})"
+        )
+
+        if st.button(
+            f"Apply Simulated Cooling to {name}",
+            key=f"cool_{name}"
+        ):
+
+            if live_mode and mqtt_snapshot["latest"]:
+
+                st.warning(
+                    "Live temperature is controlled by ESP32 telemetry. "
+                    "Use fan control to change the live fan command."
+                )
+
+            else:
+
+                node["temperature"] = max(
+                    22.0,
+                    node["temperature"] - fan * 0.035
+                )
+
+                st.session_state.logs.insert(
+                    0,
+                    f"SIMULATED COOLING: {name}, fan {fan}%"
+                )
+
+                st.rerun()
+
+
+# =========================================================
+# 22. SINGLE MQTT COMMAND PUBLISH BLOCK
+# =========================================================
+
+final_payload = {
+
+    "fan1_speed": int(
+        final_fan_commands["Virtual Raspberry Pi 1"]
+    ),
+
+    "fan2_speed": int(
+        final_fan_commands["Virtual Raspberry Pi 2"]
+    ),
+
+    "zone1_heat": float(
+        nodes["Virtual Raspberry Pi 1"]["heat_load"]
+    ),
+
+    "zone2_heat": float(
+        nodes["Virtual Raspberry Pi 2"]["heat_load"]
+    )
+}
+
+
+command_status = "Waiting for MQTT connection"
+
+if mqtt_snapshot["connected"]:
+
+    try:
+
+        result = mqtt_connection["client"].publish(
+            MQTT_COMMAND_TOPIC,
+            json.dumps(final_payload),
+            qos=0,
+            retain=False
+        )
+
+        if result.rc == mqtt.MQTT_ERR_SUCCESS:
+
+            command_status = "Cooling commands sent to ESP32."
+
+        else:
+
+            command_status = f"MQTT publish error: {result.rc}"
+
+    except Exception as exc:
+
+        command_status = f"Could not publish fan commands: {exc}"
+
+else:
+
+    command_status = "Waiting for MQTT connection."
+
+
+st.info(
+    f"{command_status} | "
+    f"Fan 1: {final_payload['fan1_speed']}% | "
+    f"Fan 2: {final_payload['fan2_speed']}%"
+)
+
+st.caption(
+    f"Command topic: {MQTT_COMMAND_TOPIC}. "
+    "Keep Wokwi ESP32 simulation running."
+)
+
+
+# =========================================================
+# 23. EVENT LOG
 # =========================================================
 
 st.divider()
@@ -1570,27 +1676,9 @@ else:
     st.write("No application submissions yet.")
 
 
-# =========================================================
-# 23. PROTOTYPE ARCHITECTURE AND LIMITATIONS
-# =========================================================
 
-st.divider()
-st.subheader("8. Prototype Architecture and Limitations")
 
-st.markdown("""
-- **Laptop/cloud app:** Central dashboard and Python scheduler.
-- **Virtual Node 1 and Node 2:** Simulated Raspberry Pi server records.
-- **Workload placement:** Python scheduler selects an eligible virtual node.
-- **Application assignment:** CPU, RAM and workload heat are updated.
-- **Application removal:** Selected application's resources are released.
-- **ML:** Random Forest trained on synthetic sample data predicts cooling class.
-- **ESP32:** Receives fan commands and publishes telemetry through MQTT.
-- **Temperature:** Wokwi potentiometers simulate temperature inputs.
-- **Humidity:** Wokwi DHT22 provides simulated humidity readings.
-- **Water flow:** Wokwi potentiometer on GPIO 32 simulates a 0–20 L/min value.
-- **Cooling:** Wokwi LEDs represent fan speed; they do not create physical airflow.
-- **Hardware limitation:** Virtual Raspberry Pi nodes do not execute real Linux
-  processes or Docker containers.
-- **Physical limitation:** No actual water flow, cooling or power measurement
-  is performed in this virtual prototype.
-""")
+    unsafe_allow_html=True
+
+
+
