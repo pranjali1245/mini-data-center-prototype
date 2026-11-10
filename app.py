@@ -47,13 +47,16 @@ MQTT_COMMAND_TOPIC = "mini-dc-demo-7f3a91/fan_command"
 @st.cache_resource
 def start_mqtt_subscriber():
 
-    state = {
-        "connected": False,
-        "latest": None,
-        "last_seen": None,
-        "error": None,
-        "lock": threading.Lock()
-    }
+    
+state = {
+    "connected": False,
+    "latest": None,
+    "history": [],
+    "last_seen": None,
+    "error": None,
+    "lock": threading.Lock()
+}
+
 
     def on_connect(client, userdata, flags, rc):
 
@@ -150,8 +153,11 @@ def start_mqtt_subscriber():
                 "fan1_speed": fan1_speed,
                 "fan2_speed": fan2_speed
             }
+            
 
+            
             with state["lock"]:
+            
 
                 state["latest"] = clean
 
@@ -207,20 +213,29 @@ mqtt_connection = start_mqtt_subscriber()
 mqtt_state = mqtt_connection["state"]
 
 
+
 def get_mqtt_snapshot():
 
     with mqtt_state["lock"]:
 
         return {
             "connected": mqtt_state["connected"],
+
             "latest": (
                 dict(mqtt_state["latest"])
                 if mqtt_state["latest"]
                 else None
             ),
+
+            "history": [
+                dict(item)
+                for item in mqtt_state["history"]
+            ],
+
             "last_seen": mqtt_state["last_seen"],
             "error": mqtt_state["error"]
         }
+
 
 
 # =========================================================
